@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="jdeploy-bundle">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/OpenList-Frontend/node_modules/.pnpm/@crowdin+cli@4.9.1/node_modules/@crowdin/cli/jdeploy-bundle/crowdin-cli.jar!/" />
+      <root url="jar://$PROJECT_DIR$/OpenList-Frontend/node_modules/.pnpm/@crowdin+cli@4.9.1/node_modules/@crowdin/cli/jdeploy-bundle/jar-runner.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,12 @@
+[33mWARN[0m[2025-09-10 20:12:06] not enable search                            
+[36mINFO[0m[2025-09-10 20:12:06] init offline download tool 115 Cloud success: ok 
+[36mINFO[0m[2025-09-10 20:12:06] init offline download tool 115 Open success: ok 
+[33mWARN[0m[2025-09-10 20:12:06] init offline download tool aria2 failed: failed get aria2 version: Post "http://localhost:6800/jsonrpc": dial tcp [::1]:6800: connectex: No connection could be made because the target machine actively refused it. 
+[33mWARN[0m[2025-09-10 20:12:06] init offline download tool qBittorrent failed: Post "http://localhost:8080/api/v2/auth/login": dial tcp [::1]:8080: connectex: No connection could be made because the target machine actively refused it. 
+[36mINFO[0m[2025-09-10 20:12:06] init offline download tool Thunder success: ok 
+[36mINFO[0m[2025-09-10 20:12:06] init offline download tool ThunderBrowser success: ok 
+[36mINFO[0m[2025-09-10 20:12:06] init offline download tool ThunderX success: ok 
+[36mINFO[0m[2025-09-10 20:12:06] init offline download tool SimpleHttp success: ok 
+[36mINFO[0m[2025-09-10 20:12:06] init offline download tool PikPak success: ok 
+[33mWARN[0m[2025-09-10 20:12:06] init offline download tool Transmission failed: failed get transmission version: can't get session values: 'session-get' rpc method failed: failed to execute HTTP request: Post "http://localhost:9091/transmission/rpc": dial tcp [::1]:9091: connectex: No connection could be made because the target machine actively refused it. 
+[31mFATA[0m[2025-09-10 20:12:06] index.html not exist, you may forget to put dist of frontend to public/dist 
