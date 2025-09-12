@@ -22,6 +22,7 @@ import { globalStyles } from "./theme"
 
 const Home = lazy(() => import("~/pages/home/Layout"))
 const Manage = lazy(() => import("~/pages/manage"))
+const Tenant = lazy(() => import("~/pages/tenant"))
 const Login = lazy(() => import("~/pages/login"))
 const Test = lazy(() => import("~/pages/test"))
 
@@ -88,6 +89,14 @@ const App: Component = () => {
               element={
                 <MustUser>
                   <Manage />
+                </MustUser>
+              }
+            />
+            <Route
+              path="/@tenant/*"
+              element={
+                <MustUser>
+                  <Tenant />
                 </MustUser>
               }
             />

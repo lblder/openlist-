@@ -1,13 +1,28 @@
 {
-  "login_to": "Login to the",
-  "username-tips": "Input your username",
-  "password-tips": "Input your password",
-  "otp-tips": "Input your OTP Code",
+  "title": "Login",
+  "username": "Username",
+  "password": "Password",
+  "username-tips": "Please enter username",
+  "password-tips": "Please enter password",
   "remember": "Remember me",
-  "forget": "Forget password?",
-  "forget_url": "https://doc.oplist.org/faq/howto#how-to-get-password-if-i-forget-it",
-  "clear": "Clear",
   "login": "Login",
-  "use_guest": "Browse as a guest",
-  "success": "Login successfully"
+  "register": "Register",
+  "use_sso": "Use SSO Login",
+  "use_password": "Use Password Login",
+  "login_to": "Login to",
+  "no_login_method": "No login methods available",
+  "forget": "Forget password",
+  "forget_url": "",
+  "clear": "Clear",
+  "success": "Login successful",
+  "use_guest": "Guest Login",
+  "tenant_login": "Tenant Login",
+  "otp-tips": "Please enter 2FA code",
+  "webauthn": {
+    "title": "WebAuthn Login",
+    "login": "Fingerprint/Security Key Login",
+    "unsupported": "WebAuthn is not supported by your browser",
+    "failed": "Authentication failed: {error}",
+    "error": "Authentication error: {error}"
+  }
 }

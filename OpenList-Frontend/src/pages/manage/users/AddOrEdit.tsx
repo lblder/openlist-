@@ -7,6 +7,7 @@ import {
   Heading,
   Input,
   VStack,
+  Select,
 } from "@hope-ui/solid"
 import { MaybeLoading, FolderChooseInput } from "~/components"
 import { useFetch, useRouter, useT } from "~/hooks"
@@ -47,15 +48,18 @@ const AddOrEdit = () => {
   const t = useT()
   const { params, back } = useRouter()
   const { id } = params
-  const [user, setUser] = createStore<User>({
+  const [user, setUser] = createStore({
     id: 0,
     username: "",
     password: "",
     base_path: "",
-    role: 0,
+    role: 3, // Set default role to TENANT (3)
     permission: 0,
     disabled: false,
     sso_id: "",
+    otp_secret: "",
+    created_at: "",
+    updated_at: "",
   })
   const [userLoading, loadUser] = useFetch(
     (): PResp<User> => r.get(`/admin/user/get?id=${id}`),
@@ -75,7 +79,7 @@ const AddOrEdit = () => {
     <MaybeLoading loading={userLoading()}>
       <VStack w="$full" alignItems="start" spacing="$2">
         <Heading>{t(`global.${id ? "edit" : "add"}`)}</Heading>
-        <Show when={!UserMethods.is_guest(user)}>
+        <Show when={!(user.role === 1)}>
           <FormControl w="$full" display="flex" flexDirection="column" required>
             <FormLabel for="username" display="flex" alignItems="center">
               {t(`users.username`)}
@@ -99,6 +103,21 @@ const AddOrEdit = () => {
             />
           </FormControl>
         </Show>
+
+        <FormControl w="$full" display="flex" flexDirection="column">
+          <FormLabel for="role" display="flex" alignItems="center">
+            {t(`users.role`)}
+          </FormLabel>
+          <Select
+            id="role"
+            value={user.role.toString()}
+            onChange={(e) => setUser("role", parseInt(e.currentTarget.value))}
+          >
+            <option value="0">{t("users.roles.general")}</option>
+            <option value="3">{t("users.roles.tenant")}</option>
+            <option value="2">{t("users.roles.admin")}</option>
+          </Select>
+        </FormControl>
 
         <FormControl w="$full" display="flex" flexDirection="column" required>
           <FormLabel for="base_path" display="flex" alignItems="center">

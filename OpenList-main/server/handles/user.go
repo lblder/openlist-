@@ -39,6 +39,12 @@ func CreateUser(c *gin.Context) {
 		common.ErrorStrResp(c, "admin or guest user can not be created", 400, true)
 		return
 	}
+	
+	// Set default role to TENANT if not specified
+	if req.Role == 0 {
+		req.Role = model.TENANT
+	}
+	
 	req.SetPassword(req.Password)
 	req.Password = ""
 	req.Authn = "[]"

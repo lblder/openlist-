@@ -1,0 +1,45 @@
+{
+  "title": "Tenant",
+  "sidemenu": {
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "access": "Access Management",
+    "data": "Data Management"
+  },
+  "dashboard": {
+    "title": "Tenant Dashboard",
+    "profile": "Profile Center",
+    "profile_desc": "View and manage your profile information",
+    "access": "Access Management",
+    "access_desc": "View OpenVPN connection information and certificate management",
+    "data": "Data Management",
+    "data_desc": "Manage your files and data storage"
+  },
+  "profile": {
+    "title": "Profile Center",
+    "username": "Username",
+    "role": "Role",
+    "tenant": "Tenant",
+    "base_path": "Base Path"
+  },
+  "access": {
+    "title": "Access Management",
+    "vpn_info": "OpenVPN Connection Info",
+    "server_ip": "Server IP",
+    "server_port": "Server Port",
+    "protocol": "Protocol",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "certificates": "Certificate Management",
+    "cert_desc": "Download your OpenVPN client certificates",
+    "download_cert": "Download Certificate",
+    "download_started": "Certificate download started"
+  },
+  "data": {
+    "title": "Data Management",
+    "file_management": "File Management",
+    "description": "Here you can manage your files and data storage",
+    "coming_soon": "Feature coming soon"
+  }
+}

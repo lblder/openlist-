@@ -20,6 +20,12 @@
   "password": "Password",
   "base_path": "Base path",
   "role": "Role",
+  "roles": {
+    "general": "General User",
+    "guest": "Guest",
+    "admin": "Administrator",
+    "tenant": "Tenant"
+  },
   "permission": "Permission",
   "disabled": "Disabled",
   "available": "Available",

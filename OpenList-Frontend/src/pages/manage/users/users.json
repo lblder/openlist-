@@ -1,0 +1,119 @@
+[
+  {
+    "name": "username",
+    "label": "manage.account.username",
+    "required": true,
+    "type": "string"
+  },
+  {
+    "name": "password",
+    "label": "manage.account.password",
+    "required": true,
+    "type": "string"
+  },
+  {
+    "name": "base_path",
+    "label": "manage.account.base_path",
+    "type": "string",
+    "props": {
+      "placeholder": "/"
+    }
+  },
+  {
+    "name": "role",
+    "label": "manage.account.role",
+    "type": "number",
+    "props": {
+      "options": [
+        {
+          "label": "manage.account.admin",
+          "value": 2
+        },
+        {
+          "label": "manage.account.general",
+          "value": 0
+        },
+        {
+          "label": "manage.account.tenant",
+          "value": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "disabled",
+    "label": "manage.account.disabled",
+    "type": "boolean"
+  },
+  {
+    "name": "permission",
+    "label": "manage.account.permissions",
+    "type": "number",
+    "help": "manage.account.permission_help",
+    "props": {
+      "type": "checkboxGroup",
+      "options": [
+        {
+          "label": "manage.account.see_hides",
+          "value": 0
+        },
+        {
+          "label": "manage.account.access_without_password",
+          "value": 1
+        },
+        {
+          "label": "manage.account.add_offline_download_tasks",
+          "value": 2
+        },
+        {
+          "label": "manage.account.mkdir_and_upload",
+          "value": 3
+        },
+        {
+          "label": "manage.account.rename",
+          "value": 4
+        },
+        {
+          "label": "manage.account.move",
+          "value": 5
+        },
+        {
+          "label": "manage.account.copy",
+          "value": 6
+        },
+        {
+          "label": "manage.account.remove",
+          "value": 7
+        },
+        {
+          "label": "manage.account.webdav_read",
+          "value": 8
+        },
+        {
+          "label": "manage.account.webdav_write",
+          "value": 9
+        },
+        {
+          "label": "manage.account.ftp_read",
+          "value": 10
+        },
+        {
+          "label": "manage.account.ftp_write",
+          "value": 11
+        },
+        {
+          "label": "manage.account.read_archives",
+          "value": 12
+        },
+        {
+          "label": "manage.account.decompress_archives",
+          "value": 13
+        },
+        {
+          "label": "manage.account.share",
+          "value": 14
+        }
+      ]
+    }
+  }
+]

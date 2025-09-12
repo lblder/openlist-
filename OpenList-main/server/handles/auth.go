@@ -1,9 +1,11 @@
 package handles
 
 import (
-	"bytes"
-	"encoding/base64"
-	"image/png"
+	"strings"
+	"crypto/rand"
+	"encoding/hex"
+	"net/url"
+	"fmt"
 
 	"github.com/OpenListTeam/OpenList/v4/internal/conf"
 	"github.com/OpenListTeam/OpenList/v4/internal/model"
@@ -11,73 +13,13 @@ import (
 	"github.com/OpenListTeam/OpenList/v4/server/common"
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp/totp"
+	log "github.com/sirupsen/logrus"
 )
 
 type LoginReq struct {
 	Username string `json:"username" binding:"required"`
-	Password string `json:"password"`
+	Password string `json:"password" binding:"required"`
 	OtpCode  string `json:"otp_code"`
-}
-
-// Login Deprecated
-func Login(c *gin.Context) {
-	var req LoginReq
-	if err := c.ShouldBind(&req); err != nil {
-		common.ErrorResp(c, err, 400)
-		return
-	}
-	req.Password = model.StaticHash(req.Password)
-	loginHash(c, &req)
-}
-
-// LoginHash login with password hashed by sha256
-func LoginHash(c *gin.Context) {
-	var req LoginReq
-	if err := c.ShouldBind(&req); err != nil {
-		common.ErrorResp(c, err, 400)
-		return
-	}
-	loginHash(c, &req)
-}
-
-func loginHash(c *gin.Context, req *LoginReq) {
-	// check count of login
-	ip := c.ClientIP()
-	count, ok := model.LoginCache.Get(ip)
-	if ok && count >= model.DefaultMaxAuthRetries {
-		common.ErrorStrResp(c, "Too many unsuccessful sign-in attempts have been made using an incorrect username or password, Try again later.", 429)
-		model.LoginCache.Expire(ip, model.DefaultLockDuration)
-		return
-	}
-	// check username
-	user, err := op.GetUserByName(req.Username)
-	if err != nil {
-		common.ErrorResp(c, err, 400)
-		model.LoginCache.Set(ip, count+1)
-		return
-	}
-	// validate password hash
-	if err := user.ValidatePwdStaticHash(req.Password); err != nil {
-		common.ErrorResp(c, err, 400)
-		model.LoginCache.Set(ip, count+1)
-		return
-	}
-	// check 2FA
-	if user.OtpSecret != "" {
-		if !totp.Validate(req.OtpCode, user.OtpSecret) {
-			common.ErrorStrResp(c, "Invalid 2FA code", 402)
-			model.LoginCache.Set(ip, count+1)
-			return
-		}
-	}
-	// generate token
-	token, err := common.GenerateToken(user)
-	if err != nil {
-		common.ErrorResp(c, err, 400, true)
-		return
-	}
-	common.SuccessResp(c, gin.H{"token": token})
-	model.LoginCache.Del(ip)
 }
 
 type UserResp struct {
@@ -106,14 +48,12 @@ func UpdateCurrent(c *gin.Context) {
 		return
 	}
 	user := c.Request.Context().Value(conf.UserKey).(*model.User)
-	if user.IsGuest() {
-		common.ErrorStrResp(c, "Guest user can not update profile", 403)
-		return
-	}
-	user.Username = req.Username
-	if req.Password != "" {
-		user.SetPassword(req.Password)
-	}
+	req.ID = user.ID
+	req.Username = user.Username
+	req.Role = user.Role
+	// can only update these fields
+	user.OtpSecret = req.OtpSecret
+	user.Password = req.Password
 	user.SsoID = req.SsoID
 	if err := op.UpdateUser(user); err != nil {
 		common.ErrorResp(c, err, 500)
@@ -122,49 +62,139 @@ func UpdateCurrent(c *gin.Context) {
 	}
 }
 
-func Generate2FA(c *gin.Context) {
-	user := c.Request.Context().Value(conf.UserKey).(*model.User)
-	if user.IsGuest() {
-		common.ErrorStrResp(c, "Guest user can not generate 2FA code", 403)
-		return
-	}
-	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      "OpenList",
-		AccountName: user.Username,
-	})
-	if err != nil {
-		common.ErrorResp(c, err, 500)
-		return
-	}
-	img, err := key.Image(400, 400)
-	if err != nil {
-		common.ErrorResp(c, err, 500)
-		return
-	}
-	// to base64
-	var buf bytes.Buffer
-	png.Encode(&buf, img)
-	b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-	common.SuccessResp(c, gin.H{
-		"qr":     "data:image/png;base64," + b64,
-		"secret": key.Secret(),
-	})
-}
-
-type Verify2FAReq struct {
-	Code   string `json:"code" binding:"required"`
-	Secret string `json:"secret" binding:"required"`
-}
-
-func Verify2FA(c *gin.Context) {
-	var req Verify2FAReq
+// Login Deprecated
+func Login(c *gin.Context) {
+	var req LoginReq
 	if err := c.ShouldBind(&req); err != nil {
 		common.ErrorResp(c, err, 400)
 		return
 	}
+	req.Password = model.StaticHash(req.Password)
+	loginHash(c, &req)
+}
+
+// LoginHash login with password hashed by sha256
+func LoginHash(c *gin.Context) {
+	var req LoginReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, err, 400)
+		return
+	}
+	loginHash(c, &req)
+}
+
+func loginHash(c *gin.Context, req *LoginReq) {
+	ip := c.ClientIP()
+	if whitelist, ok := model.Whitelist.Load().(map[string]bool); ok && whitelist[ip] {
+		log.Debugf("whitelist ip: %s", ip)
+	} else {
+		count, ok := model.LoginCache.Get(ip)
+		if ok && count >= model.DefaultMaxAuthRetries {
+			common.ErrorStrResp(c, "Too many unsuccessful sign-in attempts have been made using an incorrect username or password, Try again later.", 429)
+			model.LoginCache.Expire(ip, model.DefaultLockDuration)
+			return
+		}
+	}
+
+	user, err := op.GetUserByName(req.Username)
+	if err != nil {
+		common.ErrorResp(c, err, 400)
+		if count, ok := model.LoginCache.Get(ip); ok {
+			model.LoginCache.Set(ip, count+1)
+		} else {
+			model.LoginCache.Set(ip, 1)
+		}
+		return
+	}
+	if err := user.ValidatePwdStaticHash(req.Password); err != nil {
+		common.ErrorResp(c, err, 400)
+		if count, ok := model.LoginCache.Get(ip); ok {
+			model.LoginCache.Set(ip, count+1)
+		} else {
+			model.LoginCache.Set(ip, 1)
+		}
+		return
+	}
+	if user.OtpSecret != "" {
+		if !totp.Validate(req.OtpCode, user.OtpSecret) {
+			common.ErrorStrResp(c, "Invalid 2FA code", 402)
+			if count, ok := model.LoginCache.Get(ip); ok {
+				model.LoginCache.Set(ip, count+1)
+			} else {
+				model.LoginCache.Set(ip, 1)
+			}
+			return
+		}
+	}
+	
+	token, err := common.GenerateToken(user)
+	if err != nil {
+		common.ErrorResp(c, err, 400, true)
+		return
+	}
+	
+	common.SuccessResp(c, gin.H{
+		"token": token,
+		"role":  user.Role, // 添加角色信息到响应
+	})
+	model.LoginCache.Del(ip)
+}
+
+type Generate2FAReq struct {
+	Name string `json:"name"`
+	Secret string `json:"secret"`
+	Code string `json:"code"`
+}
+
+// 生成OTP配置URI
+func generateOTPURL(secret, name string) string {
+	// 构造标准的otpauth URI
+	issuer := "OpenList"
+	escapedName := url.QueryEscape(name)
+	escapedIssuer := url.QueryEscape(issuer)
+	return fmt.Sprintf("otpauth://totp/%s:%s?secret=%s&issuer=%s", escapedIssuer, escapedName, secret, escapedIssuer)
+}
+
+func Generate2FA(c *gin.Context) {
 	user := c.Request.Context().Value(conf.UserKey).(*model.User)
-	if user.IsGuest() {
-		common.ErrorStrResp(c, "Guest user can not generate 2FA code", 403)
+	if user.OtpSecret != "" {
+		common.ErrorStrResp(c, "2FA has been enabled", 400)
+		return
+	}
+	var req Generate2FAReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, err, 400)
+		return
+	}
+	if req.Secret == "" {
+		bytes := make([]byte, 32)
+		if _, err := rand.Read(bytes); err != nil {
+			common.ErrorResp(c, err, 500)
+			return
+		}
+		req.Secret = hex.EncodeToString(bytes)
+	}
+	if req.Name == "" {
+		req.Name = user.Username
+	}
+	
+	// 生成OTP URL
+	url := generateOTPURL(req.Secret, req.Name)
+	common.SuccessResp(c, gin.H{
+		"secret": req.Secret,
+		"qr": url,
+	})
+}
+
+func Verify2FA(c *gin.Context) {
+	user := c.Request.Context().Value(conf.UserKey).(*model.User)
+	if user.OtpSecret != "" {
+		common.ErrorStrResp(c, "2FA has been enabled", 400)
+		return
+	}
+	var req Generate2FAReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, err, 400)
 		return
 	}
 	if !totp.Validate(req.Code, req.Secret) {
@@ -179,11 +209,90 @@ func Verify2FA(c *gin.Context) {
 	}
 }
 
-func LogOut(c *gin.Context) {
-	err := common.InvalidateToken(c.GetHeader("Authorization"))
-	if err != nil {
-		common.ErrorResp(c, err, 500)
-	} else {
-		common.SuccessResp(c)
+// TenantLogin 租户登录接口
+func TenantLogin(c *gin.Context) {
+	var req LoginReq
+	if err := c.ShouldBind(&req); err != nil {
+		common.ErrorResp(c, err, 400)
+		return
 	}
+	
+	ip := c.ClientIP()
+	if whitelist, ok := model.Whitelist.Load().(map[string]bool); ok && whitelist[ip] {
+		log.Debugf("whitelist ip: %s", ip)
+	} else {
+		count, ok := model.LoginCache.Get(ip)
+		if ok && count >= model.DefaultMaxAuthRetries {
+			common.ErrorStrResp(c, "Too many unsuccessful sign-in attempts have been made using an incorrect username or password, Try again later.", 429)
+			model.LoginCache.Expire(ip, model.DefaultLockDuration)
+			return
+		}
+	}
+
+	user, err := op.GetUserByName(req.Username)
+	if err != nil {
+		common.ErrorResp(c, err, 400)
+		if count, ok := model.LoginCache.Get(ip); ok {
+			model.LoginCache.Set(ip, count+1)
+		} else {
+			model.LoginCache.Set(ip, 1)
+		}
+		return
+	}
+	
+	// 检查用户是否为租户
+	if user.Role != model.TENANT {
+		common.ErrorStrResp(c, "User is not a tenant", 403)
+		if count, ok := model.LoginCache.Get(ip); ok {
+			model.LoginCache.Set(ip, count+1)
+		} else {
+			model.LoginCache.Set(ip, 1)
+		}
+		return
+	}
+	
+	if err := user.ValidatePwdStaticHash(req.Password); err != nil {
+		common.ErrorResp(c, err, 400)
+		if count, ok := model.LoginCache.Get(ip); ok {
+			model.LoginCache.Set(ip, count+1)
+		} else {
+			model.LoginCache.Set(ip, 1)
+		}
+		return
+	}
+	
+	if user.OtpSecret != "" {
+		if !totp.Validate(req.OtpCode, user.OtpSecret) {
+			common.ErrorStrResp(c, "Invalid 2FA code", 402)
+			if count, ok := model.LoginCache.Get(ip); ok {
+				model.LoginCache.Set(ip, count+1)
+			} else {
+				model.LoginCache.Set(ip, 1)
+			}
+			return
+		}
+	}
+	
+	token, err := common.GenerateToken(user)
+	if err != nil {
+		common.ErrorResp(c, err, 400, true)
+		return
+	}
+	
+	common.SuccessResp(c, gin.H{
+		"token": token,
+		"role":  user.Role, // 添加角色信息到响应
+	})
+	model.LoginCache.Del(ip)
+}
+
+// LogOut logout
+func LogOut(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if strings.HasPrefix(token, "Bearer ") {
+		token = token[7:]
+	}
+	// 将token加入黑名单
+	common.InvalidateToken(token)
+	common.SuccessResp(c)
 }

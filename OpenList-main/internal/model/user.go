@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/OpenListTeam/OpenList/v4/internal/errs"
@@ -16,13 +17,15 @@ import (
 
 const (
 	GENERAL = iota
-	GUEST   // only one exists
+	GUEST
 	ADMIN
+	TENANT // 添加租户角色
 )
 
 const StaticHashSalt = "https://github.com/alist-org/alist"
 
 var LoginCache = cache.NewMemCache[int]()
+var Whitelist atomic.Value
 
 var (
 	DefaultLockDuration   = time.Minute * 5

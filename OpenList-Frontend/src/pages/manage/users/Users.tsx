@@ -12,7 +12,7 @@ import {
   Tr,
   VStack,
 } from "@hope-ui/solid"
-import { createSignal, For } from "solid-js"
+import { createSignal, For, Show } from "solid-js"
 import {
   useFetch,
   useListFetch,
@@ -27,19 +27,22 @@ import {
   UserMethods,
   PPageResp,
   PEmptyResp,
+  UserRole,
 } from "~/types"
 import { DeletePopover } from "../common/DeletePopover"
 import { Wether } from "~/components"
 
 const Role = (props: { role: number }) => {
-  const roles = [
-    { name: "general", color: "info" },
-    { name: "guest", color: "neutral" },
-    { name: "admin", color: "accent" },
+  const t = useT()
+  const roles: { name: string; color: string }[] = [
+    { name: t("users.roles.general"), color: "info" },
+    { name: t("users.roles.guest"), color: "neutral" },
+    { name: t("users.roles.admin"), color: "accent" },
+    { name: t("users.roles.tenant"), color: "warning" }, // Add tenant role
   ]
   return (
-    <Badge colorScheme={roles[props.role].color as any}>
-      {roles[props.role].name}
+    <Badge colorScheme={roles[props.role]?.color as any}>
+      {roles[props.role]?.name || "Unknown"}
     </Badge>
   )
 }
@@ -74,7 +77,7 @@ const Users = () => {
   const [users, setUsers] = createSignal<User[]>([])
   const refresh = async () => {
     const resp = await getUsers()
-    handleResp(resp, (data) => setUsers(data.content))
+    handleResp(resp, (data) => setUsers(data.content || []))
   }
   refresh()
 
@@ -106,18 +109,14 @@ const Users = () => {
         <Table highlightOnHover dense>
           <Thead>
             <Tr>
-              <For
-                each={[
-                  "username",
-                  "base_path",
-                  "role",
-                  "permission",
-                  "available",
-                ]}
-              >
-                {(title) => <Th>{t(`users.${title}`)}</Th>}
-              </For>
-              <Th>{t("global.operations")}</Th>
+              <Show when={true}>
+                <Th>{t(`users.username`)}</Th>
+                <Th>{t(`users.base_path`)}</Th>
+                <Th>{t(`users.role`)}</Th>
+                <Th>{t(`users.permission`)}</Th>
+                <Th>{t(`users.available`)}</Th>
+                <Th>{t("global.operations")}</Th>
+              </Show>
             </Tr>
           </Thead>
           <Tbody>

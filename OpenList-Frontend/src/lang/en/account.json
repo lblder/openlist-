@@ -1,0 +1,17 @@
+{
+  "username": "Username",
+  "role": "Role",
+  "email": "Email",
+  "status": "Status",
+  "created_at": "Created At",
+  "last_login": "Last Login",
+  "admin": "Admin",
+  "tenant": "Tenant",
+  "active": "Active",
+  "inactive": "Inactive",
+  "search_placeholder": "Search accounts...",
+  "role_filter": "Role Filter",
+  "status_filter": "Status Filter",
+  "all_roles": "All Roles",
+  "all_status": "All Status"
+}

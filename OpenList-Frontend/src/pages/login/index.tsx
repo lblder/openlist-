@@ -14,6 +14,10 @@ import {
 } from "@hope-ui/solid"
 import { createMemo, createSignal, Show, onMount, onCleanup } from "solid-js"
 import { SwitchColorMode, SwitchLanguageWhite } from "~/components"
+import { SSOLogin } from "./SSOLogin"
+import LoginBg from "./LoginBg"
+import { createStorageSignal } from "@solid-primitives/storage"
+import { getSetting, getSettingBool } from "~/store"
 import { useFetch, useT, useTitle, useRouter } from "~/hooks"
 import {
   changeToken,
@@ -24,12 +28,9 @@ import {
   handleResp,
   hashPwd,
 } from "~/utils"
-import { PResp, Resp } from "~/types"
-import LoginBg from "./LoginBg"
-import { createStorageSignal } from "@solid-primitives/storage"
-import { getSetting, getSettingBool } from "~/store"
-import { SSOLogin } from "./SSOLogin"
+import { PResp, Resp, UserRole } from "~/types"
 import { IoFingerPrint } from "solid-icons/io"
+import { BsBuilding } from "solid-icons/bs"
 import {
   parseRequestOptionsFromJSON,
   get,
@@ -58,7 +59,7 @@ const Login = () => {
   const [remember, setRemember] = createStorageSignal("remember-pwd", "false")
   const [useLdap, setUseLdap] = createSignal(false)
   const [loading, data] = useFetch(
-    async (): Promise<Resp<{ token: string }>> => {
+    async (): Promise<Resp<{ token: string; role?: number }>> => {
       if (useLdap()) {
         return r.post("/auth/login/ldap", {
           username: username(),
@@ -72,6 +73,15 @@ const Login = () => {
           otp_code: opt(),
         })
       }
+    },
+  )
+  const [tenantLoginLoading, tenantLoginReq] = useFetch(
+    async (): Promise<Resp<{ token: string; role?: number }>> => {
+      return r.post("/auth/login/tenant", {
+        username: username(),
+        password: hashPwd(password()),
+        // 租户登录暂时不支持OTP
+      })
     },
   )
   const [, postauthnlogin] = useFetch(
@@ -118,6 +128,11 @@ const Login = () => {
   const AuthnSwitch = async () => {
     setuseauthn(!useauthn())
   }
+  
+  // 添加租户登录方法
+  const tenantLogin = () => {
+    to("/@tenant") // 假设租户登录页面路由为 /@tenant
+  }
   let AuthnSignal: AbortController | null = null
   const AuthnLogin = async (conditional?: boolean) => {
     if (!supported()) {
@@ -133,7 +148,7 @@ const Login = () => {
     const controller = new AbortController()
     AuthnSignal = controller
     const username_login: string = conditional ? "" : username()
-    if (!conditional && remember() === "true") {
+    if (remember() === "true") {
       localStorage.setItem("username", username())
     } else {
       localStorage.removeItem("username")
@@ -157,10 +172,19 @@ const Login = () => {
         handleRespWithoutNotify(resp, (data) => {
           notify.success(t("login.success"))
           changeToken(data.token)
-          to(
-            decodeURIComponent(searchParams.redirect || base_path || "/"),
-            true,
-          )
+          // 获取用户信息以确定角色
+          r.get("/me").then((resp: any) => {
+            handleResp(resp, (userData: any) => {
+              if (userData.role === UserRole.TENANT) {
+                to("/@tenant", true)
+              } else {
+                to(
+                  decodeURIComponent(searchParams.redirect || base_path || "/@manage"),
+                  true,
+                )
+              }
+            })
+          })
         })
       } catch (error: unknown) {
         if (error instanceof Error && error.name != "AbortError")
@@ -195,10 +219,16 @@ const Login = () => {
         (data) => {
           notify.success(t("login.success"))
           changeToken(data.token)
-          to(
-            decodeURIComponent(searchParams.redirect || base_path || "/"),
-            true,
-          )
+          
+          // Check if user is a tenant
+          if (data.role === UserRole.TENANT) {
+            to("/@tenant", true)
+          } else {
+            to(
+              decodeURIComponent(searchParams.redirect || base_path || "/@manage"),
+              true,
+            )
+          }
         },
         (msg, code) => {
           if (!needOpt() && code === 402) {
@@ -217,6 +247,29 @@ const Login = () => {
   const ldapLoginTips = getSetting("ldap_login_tips")
   if (ldapLoginEnabled) {
     setUseLdap(true)
+  }
+
+  const doTenantLogin = async () => {
+    const resp = await tenantLoginReq()
+    handleRespWithoutNotify(
+      resp,
+      (data) => {
+        notify.success(t("login.success"))
+        changeToken(data.token)
+        // Check if user is a tenant
+        if (data.role === UserRole.TENANT) {
+          to("/@tenant", true)
+        } else {
+          to(
+            decodeURIComponent(searchParams.redirect || base_path || "/@manage"),
+            true,
+          )
+        }
+      },
+      (msg) => {
+        notify.error(msg)
+      }
+    )
   }
 
   return (
@@ -325,19 +378,29 @@ const Login = () => {
             {ldapLoginTips}
           </Checkbox>
         </Show>
-        <Button
-          w="$full"
-          colorScheme="accent"
-          onClick={() => {
-            changeToken()
-            to(
-              decodeURIComponent(searchParams.redirect || base_path || "/"),
-              true,
-            )
-          }}
-        >
-          {t("login.use_guest")}
-        </Button>
+        <HStack w="$full" spacing="$2">
+          <Button
+            flex="1"
+            colorScheme="accent"
+            onClick={() => {
+              changeToken()
+              to(
+                decodeURIComponent(searchParams.redirect || base_path || "/@manage"),
+                true,
+              )
+            }}
+          >
+            {t("login.use_guest")}
+          </Button>
+          <Button
+            flex="1"
+            colorScheme="warning"
+            loading={tenantLoginLoading()}
+            onClick={doTenantLogin}
+          >
+            {t("login.tenant_login")}
+          </Button>
+        </HStack>
         <Flex
           mt="$2"
           justifyContent="space-evenly"
@@ -354,7 +417,7 @@ const Login = () => {
               boxSize="$8"
               as={IoFingerPrint}
               p="$0_5"
-              onclick={AuthnSwitch}
+              onClick={AuthnSwitch}
             />
           </Show>
         </Flex>

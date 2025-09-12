@@ -72,6 +72,7 @@ func Init(e *gin.Engine) {
 	api.POST("/auth/login", handles.Login)
 	api.POST("/auth/login/hash", handles.LoginHash)
 	api.POST("/auth/login/ldap", handles.LoginLdap)
+	api.POST("/auth/login/tenant", handles.TenantLogin) // 添加租户登录接口
 	auth.GET("/me", handles.CurrentUser)
 	auth.POST("/me/update", handles.UpdateCurrent)
 	auth.GET("/me/sshkey/list", handles.ListMyPublicKey)
@@ -238,4 +239,40 @@ func Cors(r *gin.Engine) {
 func InitS3(e *gin.Engine) {
 	Cors(e)
 	S3Server(e.Group("/"))
+}
+
+func initRouter() *gin.Engine {
+	e := gin.Default()
+	e.Use(gin.Recovery())
+	e.Use(middlewares.FilteredLogger())
+	Cors(e)
+
+	auth := middlewares.Auth(false)
+	manage := e.Group("/manage")
+	manage.Use(auth)
+
+	// 证书管理
+	certificate := manage.Group("/certificate")
+	{
+		certificate.GET("/list", handles.CertificateList)
+		certificate.POST("/create", handles.CreateCertificate)
+		certificate.PUT("/update/:id", handles.UpdateCertificate)
+		certificate.DELETE("/delete/:id", handles.DeleteCertificate)
+		certificate.GET("/requests", handles.CertificateRequestList)
+		certificate.POST("/request/create", handles.CreateCertificateRequest)
+		certificate.POST("/request/approve/:id", handles.ApproveCertificateRequest)
+		certificate.POST("/request/reject/:id", handles.RejectCertificateRequest)
+		// certificate.GET("/download/:id", handles.DownloadCertificate) // 暂时注释掉未实现的函数
+	}
+
+	// 租户证书申请
+	tenant := manage.Group("/tenant")
+	tenant.Use(auth)
+	{
+		tenant.POST("/certificate/request", handles.CreateCertificateRequest)
+		tenant.GET("/certificates", handles.CertificateList)
+		tenant.GET("/certificate/:id", handles.GetCertificate)
+	}
+	
+	return e
 }

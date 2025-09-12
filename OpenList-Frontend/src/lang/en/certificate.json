@@ -1,0 +1,20 @@
+{
+  "name": "Name",
+  "type": "Type",
+  "owner": "Owner",
+  "status": "Status",
+  "issued_date": "Issued Date",
+  "expiration_date": "Expiration Date",
+  "valid": "Valid",
+  "expiring": "Expiring",
+  "revoked": "Revoked",
+  "user": "User",
+  "node": "Node",
+  "download": "Download",
+  "update": "Update",
+  "revoke": "Revoke",
+  "status_filter": "Status Filter",
+  "type_filter": "Type Filter",
+  "all_status": "All Status",
+  "all_types": "All Types"
+}

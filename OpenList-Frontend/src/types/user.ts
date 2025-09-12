@@ -1,7 +1,8 @@
 export enum UserRole {
-  GENERAL,
-  GUEST,
-  ADMIN,
+  GENERAL = 0,
+  GUEST = 1,
+  ADMIN = 2,
+  TENANT = 3,
 }
 
 export interface User {
@@ -9,11 +10,24 @@ export interface User {
   username: string
   password: string
   base_path: string
-  role: UserRole
+  role: number
+  disabled: boolean
+  permission: number
+  otp_secret: string
+  sso_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Me {
+  id: number
+  username: string
+  base_path: string
+  role: number
   permission: number
   sso_id: string
   disabled: boolean
-  // otp: boolean;
+  otp: boolean
 }
 
 export const UserPermissions = [
