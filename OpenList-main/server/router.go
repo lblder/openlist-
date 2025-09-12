@@ -262,7 +262,7 @@ func initRouter() *gin.Engine {
 		certificate.POST("/request/create", handles.CreateCertificateRequest)
 		certificate.POST("/request/approve/:id", handles.ApproveCertificateRequest)
 		certificate.POST("/request/reject/:id", handles.RejectCertificateRequest)
-		// certificate.GET("/download/:id", handles.DownloadCertificate) // 暂时注释掉未实现的函数
+		certificate.GET("/download/:id", handles.DownloadCertificate)
 	}
 
 	// 租户证书申请

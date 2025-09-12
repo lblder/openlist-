@@ -1,6 +1,7 @@
 package handles
 
 import (
+	"net/http"
 	"strconv"
 	"time"
 
@@ -258,4 +259,25 @@ func RejectCertificateRequest(c *gin.Context) {
 		"message": "Certificate request rejected",
 		"request": request,
 	})
+}
+
+// DownloadCertificate 下载证书
+func DownloadCertificate(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		common.ErrorResp(c, errors.New("invalid id"), 400)
+		return
+	}
+
+	certificate, err := op.GetCertificateByID(uint(id))
+	if err != nil {
+		common.ErrorResp(c, errors.New("certificate not found"), 404)
+		return
+	}
+
+	// 设置响应头以触发下载
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+certificate.Name+".crt")
+	c.String(http.StatusOK, certificate.Content)
 }
