@@ -1,5 +1,10 @@
 /ign/
+**/dist/
 /OpenList-main/public/dist/
+/dist
+/build
+/public/dist
+
 /.idea/
 /OpenList-main/openlist.exe
 /backup/
