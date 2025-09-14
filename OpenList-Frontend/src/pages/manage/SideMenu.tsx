@@ -1,8 +1,8 @@
-import { Box, Flex, Heading, HStack, Icon, VStack } from "@hope-ui/solid"
+import { Box, Flex, Heading, HStack, Icon, VStack, createDisclosure } from "@hope-ui/solid"
 import { createMemo, createSignal, For, Match, Show, Switch } from "solid-js"
 import { useRouter, useT } from "~/hooks"
 import { BiSolidRightArrow } from "solid-icons/bi"
-import { onClose } from "./Header"
+// 删除了对onClose的导入，改用createDisclosure创建
 import { UserMethods, UserRole } from "~/types"
 import { me } from "~/store"
 import { AnchorWithBase } from "~/components"
@@ -21,16 +21,20 @@ export interface SideMenuItemProps {
 }
 
 const SideMenuItem = (props: SideMenuItemProps) => {
+  const currentUser = me()
   const ifShow = createMemo(() => {
-    if (!UserMethods.is_admin(me())) {
+    if (!UserMethods.is_admin(currentUser)) {
       if (props.role === undefined) return false
-      else if (props.role === UserRole.GENERAL && !UserMethods.is_general(me()))
+      else if (props.role === UserRole.GENERAL && !UserMethods.is_general(currentUser))
         return false
     }
     return true
   })
+  // 使用createDisclosure创建onClose函数
+  const { onClose } = createDisclosure()
+
   return (
-    <Switch fallback={<SideMenuItemWithTo {...props} />}>
+    <Switch fallback={<SideMenuItemWithTo {...props} onClose={onClose} />}>
       <Match when={!ifShow()}>{null}</Match>
       <Match when={props.children}>
         <SideMenuItemWithChildren {...props} />
@@ -39,23 +43,25 @@ const SideMenuItem = (props: SideMenuItemProps) => {
   )
 }
 
-const SideMenuItemWithTo = (props: SideMenuItemProps) => {
+const SideMenuItemWithTo = (props: SideMenuItemProps & { onClose?: () => void }) => {
   const { pathname } = useRouter()
   const t = useT()
   const isActive = () => pathname() === props.to
+  const { onClose } = props
+
   return (
     <AnchorWithBase
-      cancelBase={props.to.startsWith("http")}
+      cancelBase={props.to && props.to.startsWith("http")}
       display="flex"
       as={Link}
       href={props.to}
       onClick={(e: any) => {
         // to(props.to!);
-        onClose()
+        if (onClose) onClose()
         if (props.refresh) {
           e.stopPropagation?.()
           let to = props.to
-          if (!to.startsWith("http")) {
+          if (to && !to.startsWith("http")) {
             to = joinBase(to)
           }
           window.open(to, "_self")

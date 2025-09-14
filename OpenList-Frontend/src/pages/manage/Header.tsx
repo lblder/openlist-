@@ -22,6 +22,7 @@ import { SideMenu } from "./SideMenu"
 import { side_menu_items } from "./sidemenu_items"
 import { changeToken, handleResp, notify, r } from "~/utils"
 import { PResp } from "~/types"
+import { setMe, defaultUser } from "~/store"
 const { isOpen, onOpen, onClose } = createDisclosure()
 const [logOutReqLoading, logOutReq] = useFetch(
   (): PResp<any> => r.get("/auth/logout"),
@@ -32,9 +33,17 @@ const Header = () => {
   const { to } = useRouter()
   const logOut = async () => {
     handleResp(await logOutReq(), () => {
+      // 清除所有本地存储的认证信息
       changeToken()
+      localStorage.removeItem("token")
+      sessionStorage.clear()
+      
+      // 清除用户信息，使用默认空用户对象
+      setMe(defaultUser)
+      
       notify.success(t("manage.logout_success"))
-      to(`/@login?redirect=${encodeURIComponent(location.pathname)}`)
+      // 登出后重定向到登录页面
+      to("/@login")
     })
   }
   return (

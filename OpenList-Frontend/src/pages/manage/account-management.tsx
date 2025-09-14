@@ -27,7 +27,7 @@ import {
 } from "@hope-ui/solid"
 import { createMemo, createSignal, For, Show, Switch } from "solid-js"
 import { useManageTitle, useT } from "~/hooks"
-import { BiSolidTrash,  BiSolidEdit, BiSolidSearch } from "solid-icons/bi"
+import { BiSolidTrash, BiSolidEdit, BiSolidSearch } from "solid-icons/bi"
 import { FaSolidUser, FaSolidUsers } from "solid-icons/fa"
 
 // 模拟账户数据类型
@@ -99,6 +99,16 @@ const AccountManagement = () => {
   const [filterStatus, setFilterStatus] = createSignal<string>("all")
   const [searchTerm, setSearchTerm] = createSignal<string>("")
   
+  // 获取角色对应的图标
+  const getRoleIcon = (role: string) => {
+    return role === "admin" ? FaSolidUser : FaSolidUsers
+  }
+  
+  // 获取角色对应的颜色
+  const getRoleColor = (role: string) => {
+    return role === "admin" ? "danger" : "accent"
+  }
+  
   // 刷新账户列表（模拟）
   const refresh = () => {
     setAccounts([...mockAccounts])
@@ -110,7 +120,7 @@ const AccountManagement = () => {
       const roleMatch = filterRole() === "all" || account.role === filterRole()
       const statusMatch = filterStatus() === "all" || account.status === filterStatus()
       const searchMatch = searchTerm() === "" || 
-        account.username.toLowerCase().includes(searchTerm().toLowerCase()) ||
+        (account.username ? account.username.toLowerCase().includes(searchTerm().toLowerCase()) : false) ||
         account.email.toLowerCase().includes(searchTerm().toLowerCase())
       return roleMatch && statusMatch && searchMatch
     })
@@ -236,18 +246,18 @@ const AccountManagement = () => {
                 <Tr>
                   <Td>
                     <HStack spacing="$2">
-                      <Icon as={account.role === "admin" ? FaSolidUser : FaSolidUsers} />
+                      <Icon as={getRoleIcon(account?.role)} />
                       <Text>{account.username}</Text>
                     </HStack>
                   </Td>
                   <Td>
-                    <Badge colorScheme={account.role === "admin" ? "danger" : "accent"}>
-                      {account.role === "admin" ? t("account.admin") : t("account.tenant")}
+                    <Badge colorScheme={getRoleColor(account?.role)}>
+                      {account?.role === "admin" ? t("account.admin") : t("account.tenant")}
                     </Badge>
                   </Td>
                   <Td>{account.email}</Td>
                   <Td>
-                    <Badge colorScheme={account.status === "active" ? "success" : "neutral"}>
+                    <Badge colorScheme={account?.status === "active" ? "success" : "neutral"}>
                       {account.status === "active" ? t("account.active") : t("account.inactive")}
                     </Badge>
                   </Td>
@@ -262,7 +272,7 @@ const AccountManagement = () => {
                         size="sm"
                         onClick={() => editAccount(account.id)}
                       />
-                      <Show when={account.role !== "admin"}>
+                      <Show when={account?.role !== "admin"}>
                         <IconButton
                           aria-label={t("global.delete")}
                           icon={<BiSolidTrash />}

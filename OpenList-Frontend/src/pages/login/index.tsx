@@ -172,9 +172,9 @@ const Login = () => {
         handleRespWithoutNotify(resp, (data) => {
           notify.success(t("login.success"))
           changeToken(data.token)
-          // 获取用户信息以确定角色
-          r.get("/me").then((resp: any) => {
-            handleResp(resp, (userData: any) => {
+          // 重新获取用户信息以确保角色正确
+          r.get("/me").then((userResp: any) => {
+            handleResp(userResp, (userData: any) => {
               if (userData.role === UserRole.TENANT) {
                 to("/@tenant", true)
               } else {
@@ -220,15 +220,19 @@ const Login = () => {
           notify.success(t("login.success"))
           changeToken(data.token)
           
-          // Check if user is a tenant
-          if (data.role === UserRole.TENANT) {
-            to("/@tenant", true)
-          } else {
-            to(
-              decodeURIComponent(searchParams.redirect || base_path || "/@manage"),
-              true,
-            )
-          }
+          // 重新获取用户信息以确保角色正确，而不是依赖登录接口返回的角色信息
+          r.get("/me").then((userResp: any) => {
+            handleResp(userResp, (userData: any) => {
+              if (userData.role === UserRole.TENANT) {
+                to("/@tenant", true)
+              } else {
+                to(
+                  decodeURIComponent(searchParams.redirect || base_path || "/@manage"),
+                  true,
+                )
+              }
+            })
+          })
         },
         (msg, code) => {
           if (!needOpt() && code === 402) {
@@ -249,28 +253,6 @@ const Login = () => {
     setUseLdap(true)
   }
 
-  const doTenantLogin = async () => {
-    const resp = await tenantLoginReq()
-    handleRespWithoutNotify(
-      resp,
-      (data) => {
-        notify.success(t("login.success"))
-        changeToken(data.token)
-        // Check if user is a tenant
-        if (data.role === UserRole.TENANT) {
-          to("/@tenant", true)
-        } else {
-          to(
-            decodeURIComponent(searchParams.redirect || base_path || "/@manage"),
-            true,
-          )
-        }
-      },
-      (msg) => {
-        notify.error(msg)
-      }
-    )
-  }
 
   return (
     <Center zIndex="1" w="$full" h="100vh">
@@ -378,29 +360,6 @@ const Login = () => {
             {ldapLoginTips}
           </Checkbox>
         </Show>
-        <HStack w="$full" spacing="$2">
-          <Button
-            flex="1"
-            colorScheme="accent"
-            onClick={() => {
-              changeToken()
-              to(
-                decodeURIComponent(searchParams.redirect || base_path || "/@manage"),
-                true,
-              )
-            }}
-          >
-            {t("login.use_guest")}
-          </Button>
-          <Button
-            flex="1"
-            colorScheme="warning"
-            loading={tenantLoginLoading()}
-            onClick={doTenantLogin}
-          >
-            {t("login.tenant_login")}
-          </Button>
-        </HStack>
         <Flex
           mt="$2"
           justifyContent="space-evenly"

@@ -6,51 +6,52 @@ import (
 )
 
 // GetCertificates 获取所有证书
-func GetCertificates() ([]*model.Certificate, error) {
-	return db.GetCertificates()
+var GetCertificates = db.GetCertificates
+
+// GetCertificatesByOwner 根据所有者获取证书
+func GetCertificatesByOwner(owner string) ([]*model.Certificate, error) {
+	var certificates []*model.Certificate
+	err := db.GetDb().Where("owner = ?", owner).Find(&certificates).Error
+	return certificates, err
+}
+
+// GetCertificatesByOwnerID 根据所有者ID获取证书
+func GetCertificatesByOwnerID(ownerID uint) ([]*model.Certificate, error) {
+	var certificates []*model.Certificate
+	err := db.GetDb().Where("owner_id = ?", ownerID).Find(&certificates).Error
+	return certificates, err
 }
 
 // GetCertificateByID 根据ID获取证书
-func GetCertificateByID(id uint) (*model.Certificate, error) {
-	return db.GetCertificateByID(id)
-}
+var GetCertificateByID = db.GetCertificateByID
 
 // CreateCertificate 创建证书
-func CreateCertificate(certificate *model.Certificate) error {
-	return db.CreateCertificate(certificate)
-}
+var CreateCertificate = db.CreateCertificate
 
 // UpdateCertificate 更新证书
-func UpdateCertificate(certificate *model.Certificate) error {
-	return db.UpdateCertificate(certificate)
-}
+var UpdateCertificate = db.UpdateCertificate
 
 // DeleteCertificate 删除证书
-func DeleteCertificate(id uint) error {
-	return db.DeleteCertificate(id)
-}
+var DeleteCertificate = db.DeleteCertificate
 
 // GetCertificateRequests 获取所有证书申请
-func GetCertificateRequests() ([]*model.CertificateRequest, error) {
-	return db.GetCertificateRequests()
-}
+var GetCertificateRequests = db.GetCertificateRequests
 
 // GetCertificateRequestByID 根据ID获取证书申请
-func GetCertificateRequestByID(id uint) (*model.CertificateRequest, error) {
-	return db.GetCertificateRequestByID(id)
+var GetCertificateRequestByID = db.GetCertificateRequestByID
+
+// GetCertificateRequestsByUserID 根据用户ID获取证书申请
+func GetCertificateRequestsByUserID(userID uint) ([]*model.CertificateRequest, error) {
+	var requests []*model.CertificateRequest
+	err := db.GetDb().Where("user_id = ?", userID).Find(&requests).Error
+	return requests, err
 }
 
 // CreateCertificateRequest 创建证书申请
-func CreateCertificateRequest(request *model.CertificateRequest) error {
-	return db.CreateCertificateRequest(request)
-}
+var CreateCertificateRequest = db.CreateCertificateRequest
 
 // UpdateCertificateRequest 更新证书申请
-func UpdateCertificateRequest(request *model.CertificateRequest) error {
-	return db.UpdateCertificateRequest(request)
-}
+var UpdateCertificateRequest = db.UpdateCertificateRequest
 
 // DeleteCertificateRequest 删除证书申请
-func DeleteCertificateRequest(id uint) error {
-	return db.DeleteCertificateRequest(id)
-}
+var DeleteCertificateRequest = db.DeleteCertificateRequest

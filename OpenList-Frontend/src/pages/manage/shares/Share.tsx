@@ -71,7 +71,7 @@ function ShareOp(props: ShareProps) {
   )
 }
 
-const Creator = (props: { name: string; role: number }) => {
+const RoleBadge: Component<{ role: number }> = (props) => {
   if (props.role < 0) return null
   const roleColors = ["info", "neutral", "accent"]
   return (
@@ -115,12 +115,10 @@ export function ShareListItem(props: ShareProps) {
       (props.share.max_accessed > 0 &&
         props.share.accessed >= props.share.max_accessed) ||
       props.share.files.length === 0 ||
-      (props.share.expires && new Date(props.share.expires) < new Date())
+      (props.share.expires && new Date(props.share.expires) < new Date()) ||
+      (props.share.creator === me()?.username && !props.canShare)
     ) {
       return "invalid"
-    }
-    if (props.share.creator === me().username && !props.canShare) {
-      return "denied"
     }
     return "work"
   }

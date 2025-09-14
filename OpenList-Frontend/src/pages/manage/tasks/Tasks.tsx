@@ -1,3 +1,18 @@
+import { Show } from "solid-js"
+import { me } from "~/store"
+
+interface ShowForRoleProps {
+  role: number
+  children: JSX.Element
+}
+
+export default function ShowForRole(props: ShowForRoleProps) {
+  return (
+    <Show when={me()?.role === props.role}>
+      {props.children}
+    </Show>
+  )
+}
 import {
   Button,
   Checkbox,
@@ -19,6 +34,7 @@ import {
   onCleanup,
   Show,
 } from "solid-js"
+import ShowForRole from "./ShowForRole"
 import { Paginator } from "~/components"
 import { useFetch, useT } from "~/hooks"
 import { PEmptyResp, PResp, TaskInfo } from "~/types"
@@ -157,12 +173,13 @@ export const Tasks = (props: TasksProps) => {
       setRegexCompileFailed(true)
     }
   })
-  const [showOnlyMine, setShowOnlyMine] = createSignal(me().role !== 2)
+  const [showOnlyMine, setShowOnlyMine] = createSignal(me()?.role !== 2)
   const taskFilter = createMemo(() => {
     const regex = regexFilter()
     const mine = showOnlyMine()
+    const currentUser = me()
     return (task: TaskInfo): boolean =>
-      regex.test(task.name) && (!mine || task.creator === me().username)
+      regex.test(task.name) && (!mine || task.creator === (currentUser?.username || ''))
   })
   const filteredTask = createMemo(() => {
     return tasks().filter(taskFilter())
@@ -333,14 +350,14 @@ export const Tasks = (props: TasksProps) => {
           onInput={(e: any) => setRegexFilterValue(e.target.value as string)}
           invalid={regexCompileFailed()}
         />
-        <Show when={me().role === 2}>
+        <ShowForRole role={2}>
           <Checkbox
             checked={showOnlyMine()}
             onChange={(e: any) => setShowOnlyMine(e.target.checked as boolean)}
           >
             {t(`tasks.show_only_mine`)}
           </Checkbox>
-        </Show>
+        </ShowForRole>
       </HStack>
       <VStack
         w={{ "@initial": "1024px", "@lg": "$full" }}

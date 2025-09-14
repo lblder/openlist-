@@ -6,9 +6,12 @@
     "access": "Access Management",
     "data": "Data Management"
   },
+  "logout_success": "Logout successfully",
   "dashboard": {
     "title": "Tenant Dashboard",
-    "profile": "Profile Center",
+    "welcome": "Welcome to OpenList Tenant System",
+    "description": "Here you can manage your files, access permissions, and configuration settings.",
+    "profile": "Profile",
     "profile_desc": "View and manage your profile information",
     "access": "Access Management",
     "access_desc": "View OpenVPN connection information and certificate management",
@@ -16,15 +19,18 @@
     "data_desc": "Manage your files and data storage"
   },
   "profile": {
-    "title": "Profile Center",
+    "title": "Profile",
     "username": "Username",
     "role": "Role",
+    "email": "Email",
+    "last_login": "Last Login",
+    "change_password": "Change Password",
     "tenant": "Tenant",
     "base_path": "Base Path"
   },
   "access": {
     "title": "Access Management",
-    "vpn_info": "OpenVPN Connection Info",
+    "vpn_info": "OpenVPN Connection Information",
     "server_ip": "Server IP",
     "server_port": "Server Port",
     "protocol": "Protocol",
@@ -32,9 +38,21 @@
     "active": "Active",
     "inactive": "Inactive",
     "certificates": "Certificate Management",
-    "cert_desc": "Download your OpenVPN client certificates",
+    "cert_desc": "This section displays your OpenVPN certificate information. Please ensure you have a valid certificate to access the VPN.",
+    "expires": "Expires",
     "download_cert": "Download Certificate",
-    "download_started": "Certificate download started"
+    "no_certificates": "No Certificates",
+    "no_certificates_desc": "You currently don't have any certificates. Please apply for a new certificate to access the VPN service.",
+    "apply_certificate": "Apply Certificate",
+    "certificate_applied": "Certificate application submitted",
+    "download_started": "Certificate download started",
+    "certificates_loaded": "Certificates loaded successfully",
+    "certificate_request": "Certificate Request",
+    "requested_at": "Requested At",
+    "reason": "Reason",
+    "waiting_approval": "Waiting for Approval",
+    "certificate_requested": "Certificate Requested",
+    "waiting_approval_desc": "Your certificate request has been submitted and is awaiting administrator approval. The certificate will be displayed here once approved."
   },
   "data": {
     "title": "Data Management",

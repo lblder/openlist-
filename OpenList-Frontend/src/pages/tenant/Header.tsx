@@ -1,6 +1,6 @@
 import {
   Box,
-  Center,
+  Button,
   createDisclosure,
   Drawer,
   DrawerBody,
@@ -11,33 +11,42 @@ import {
   Flex,
   Heading,
   HStack,
+  Icon,
   IconButton,
+  Text,
   useColorModeValue,
 } from "@hope-ui/solid"
 import { TiThMenu } from "solid-icons/ti"
 import { IoExit } from "solid-icons/io"
 import { SwitchColorMode, SwitchLanguageWhite } from "~/components"
+import { createSignal, Show } from "solid-js"
 import { useFetch, useT, useRouter, useTitle } from "~/hooks"
-import { me, setMe } from "~/store"
-import { PEmptyResp } from "~/types"
-import { r } from "~/utils"
-import { SideMenu } from "./SideMenu"
-import { side_menu_items } from "./sidemenu_items"
-
-const { isOpen, onOpen, onClose } = createDisclosure()
-const [logoutLoading, logout] = useFetch(
-  (): PEmptyResp => r.post("/auth/logout"),
-)
+import { me, setMe, defaultUser } from "~/store"
+import { handleResp, notify, r, changeToken } from "~/utils"
 
 export const Header = () => {
   const t = useT()
   useTitle(() => t("tenant.title"))
   const { to } = useRouter()
+  const { isOpen, onOpen, onClose } = createDisclosure()
+  const [logoutLoading, logoutReq] = useFetch(
+    (): PResp<any> => r.get("/auth/logout"),
+  )
   
   const handleLogout = async () => {
-    await logout()
-    setMe({} as any)
-    to("/@login?redirect=/@tenant")
+    handleResp(await logoutReq(), () => {
+      // 清除所有本地存储的认证信息
+      changeToken()
+      localStorage.removeItem("token")
+      sessionStorage.clear()
+      
+      // 清除用户信息，使用默认空用户对象
+      setMe(defaultUser)
+      
+      notify.success(t("tenant.logout_success"))
+      // 登出后重定向到登录页面
+      to("/@login")
+    })
   }
   
   return (

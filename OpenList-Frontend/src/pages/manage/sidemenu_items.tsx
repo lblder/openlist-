@@ -24,6 +24,7 @@ import { Component, lazy } from "solid-js"
 import { Group, UserRole } from "~/types"
 import { FaSolidBook, FaSolidDatabase } from "solid-icons/fa"
 import { TbArchive } from "solid-icons/tb"
+import { VsShield } from "solid-icons/vs"
 
 export type SideMenuItem = SideMenuItemProps & {
   component?: Component
@@ -214,14 +215,14 @@ export const side_menu_items: SideMenuItem[] = [
     role: UserRole.GENERAL,
   },
   {
-    title: "manage.sidemenu.performance_monitoring",
+    title: "manage.sidemenu.performance-monitoring",
     to: "/@manage/performance-monitoring",
     icon: BsSearch,
     component: lazy(() => import("./performance-monitoring")),
     role: UserRole.GENERAL,
   },
   {
-    title: "manage.sidemenu.sdn_control",
+    title: "manage.sidemenu.sdn-control",
     to: "/@manage/sdn-control",
     icon: BsHddNetwork,
     component: lazy(() => import("./sdn-control")),

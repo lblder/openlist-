@@ -67,7 +67,7 @@ const mockLinks: LinkData[] = [
 ]
 
 const PerformanceMonitoring = () => {
-  useManageTitle("manage.sidemenu.performance_monitoring")
+  useManageTitle("manage.sidemenu.performance-monitoring")
   const t = useT()
   
   const [metrics, setMetrics] = createSignal<MetricData[]>(mockMetrics)

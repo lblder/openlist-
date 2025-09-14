@@ -11,6 +11,7 @@ import (
 	"github.com/OpenListTeam/OpenList/v4/internal/model"
 	"github.com/OpenListTeam/OpenList/v4/internal/op"
 	"github.com/OpenListTeam/OpenList/v4/server/common"
+	"github.com/OpenListTeam/OpenList/v4/internal/conf"
 )
 
 // CertificateList 获取证书列表
@@ -39,13 +40,27 @@ func CreateCertificate(c *gin.Context) {
 		Name           string                  `json:"name" binding:"required"`
 		Type           model.CertificateType   `json:"type" binding:"required"`
 		Owner          string                  `json:"owner" binding:"required"`
+		OwnerID        uint                    `json:"owner_id"`
 		Content        string                  `json:"content"`
-		IssuedDate     time.Time               `json:"issued_date"`
-		ExpirationDate time.Time               `json:"expiration_date"`
+		IssuedDate     string                  `json:"issued_date"`     // 修改为字符串类型
+		ExpirationDate string                  `json:"expiration_date"` // 修改为字符串类型
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		common.ErrorResp(c, err, 400)
+		return
+	}
+
+	// 解析日期字符串
+	issuedDate, err := time.Parse("2006-01-02", req.IssuedDate)
+	if err != nil {
+		common.ErrorResp(c, errors.New("invalid issued_date format, expected YYYY-MM-DD"), 400)
+		return
+	}
+
+	expirationDate, err := time.Parse("2006-01-02", req.ExpirationDate)
+	if err != nil {
+		common.ErrorResp(c, errors.New("invalid expiration_date format, expected YYYY-MM-DD"), 400)
 		return
 	}
 
@@ -54,9 +69,10 @@ func CreateCertificate(c *gin.Context) {
 		Type:           req.Type,
 		Status:         model.CertificateStatusValid,
 		Owner:          req.Owner,
+		OwnerID:        req.OwnerID,
 		Content:        req.Content,
-		IssuedDate:     req.IssuedDate,
-		ExpirationDate: req.ExpirationDate,
+		IssuedDate:     issuedDate,
+		ExpirationDate: expirationDate,
 	}
 
 	if err := op.CreateCertificate(certificate); err != nil {
@@ -82,9 +98,52 @@ func UpdateCertificate(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(certificate); err != nil {
+	var req struct {
+		Name           *string `json:"name"`
+		Type           *model.CertificateType `json:"type"`
+		Owner          *string `json:"owner"`
+		OwnerID        *uint   `json:"owner_id"`
+		Content        *string `json:"content"`
+		IssuedDate     *string `json:"issued_date"`     // 修改为字符串指针类型
+		ExpirationDate *string `json:"expiration_date"` // 修改为字符串指针类型
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
 		common.ErrorResp(c, err, 400)
 		return
+	}
+
+	// 更新字段
+	if req.Name != nil {
+		certificate.Name = *req.Name
+	}
+	if req.Type != nil {
+		certificate.Type = *req.Type
+	}
+	if req.Owner != nil {
+		certificate.Owner = *req.Owner
+	}
+	if req.OwnerID != nil {
+		certificate.OwnerID = *req.OwnerID
+	}
+	if req.Content != nil {
+		certificate.Content = *req.Content
+	}
+	if req.IssuedDate != nil {
+		issuedDate, err := time.Parse("2006-01-02", *req.IssuedDate)
+		if err != nil {
+			common.ErrorResp(c, errors.New("invalid issued_date format, expected YYYY-MM-DD"), 400)
+			return
+		}
+		certificate.IssuedDate = issuedDate
+	}
+	if req.ExpirationDate != nil {
+		expirationDate, err := time.Parse("2006-01-02", *req.ExpirationDate)
+		if err != nil {
+			common.ErrorResp(c, errors.New("invalid expiration_date format, expected YYYY-MM-DD"), 400)
+			return
+		}
+		certificate.ExpirationDate = expirationDate
 	}
 
 	if err := op.UpdateCertificate(certificate); err != nil {
@@ -135,10 +194,30 @@ func GetCertificateByID(c *gin.Context) {
 	GetCertificate(c)
 }
 
+// GetTenantCertificates 获取租户自己的证书
+func GetTenantCertificates(c *gin.Context) {
+	// 获取当前用户信息
+	user := c.MustGet(string(conf.UserKey)).(*model.User)
+	
+	// 根据用户ID获取证书
+	certificates, err := op.GetCertificatesByOwnerID(user.ID)
+	if err != nil {
+		// 如果出错，尝试通过用户名获取
+		certificates, err = op.GetCertificatesByOwner(user.Username)
+		if err != nil {
+			common.ErrorResp(c, err, 500)
+			return
+		}
+	}
+	
+	common.SuccessResp(c, certificates)
+}
+
 // CreateCertificateRequest 创建证书申请
 func CreateCertificateRequest(c *gin.Context) {
 	var req struct {
 		UserName string                `json:"user_name" binding:"required"`
+		UserID   uint                  `json:"user_id"`
 		Type     model.CertificateType `json:"type" binding:"required"`
 		Reason   string                `json:"reason"`
 	}
@@ -150,6 +229,38 @@ func CreateCertificateRequest(c *gin.Context) {
 
 	request := &model.CertificateRequest{
 		UserName: req.UserName,
+		UserID:   req.UserID,
+		Type:     req.Type,
+		Status:   model.CertificateStatusPending,
+		Reason:   req.Reason,
+	}
+
+	if err := op.CreateCertificateRequest(request); err != nil {
+		common.ErrorResp(c, err, 500)
+		return
+	}
+
+	common.SuccessResp(c, request)
+}
+
+// CreateTenantCertificateRequest 租户创建证书申请
+func CreateTenantCertificateRequest(c *gin.Context) {
+	// 获取当前用户信息
+	user := c.MustGet(string(conf.UserKey)).(*model.User)
+	
+	var req struct {
+		Type   model.CertificateType `json:"type" binding:"required"`
+		Reason string                `json:"reason"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ErrorResp(c, err, 400)
+		return
+	}
+
+	request := &model.CertificateRequest{
+		UserName: user.Username,
+		UserID:   user.ID,
 		Type:     req.Type,
 		Status:   model.CertificateStatusPending,
 		Reason:   req.Reason,
@@ -203,6 +314,7 @@ func ApproveCertificateRequest(c *gin.Context) {
 		Type:           request.Type,
 		Status:         model.CertificateStatusValid,
 		Owner:          request.UserName,
+		OwnerID:        request.UserID,
 		IssuedDate:     time.Now(),
 		ExpirationDate: time.Now().AddDate(1, 0, 0), // 1年有效期
 	}

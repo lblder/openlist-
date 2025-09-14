@@ -1,5 +1,5 @@
 /ign/
-!.gitignore
 /OpenList-main/public/dist/
 /.idea/
 /OpenList-main/openlist.exe
+/backup/

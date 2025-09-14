@@ -43,16 +43,17 @@ const Profile = () => {
   const t = useT()
   useManageTitle("manage.sidemenu.profile")
   const { searchParams, to } = useRouter()
-  const [username, setUsername] = createSignal(me().username)
+  const currentUser = me()
+  const [username, setUsername] = createSignal(currentUser?.username || '')
   const [password, setPassword] = createSignal("")
   const [confirmPassword, setConfirmPassword] = createSignal("")
   const usecompatibility = getSettingBool("sso_compatibility_mode")
   const [loading, save] = useFetch(
     (ssoID?: boolean): PEmptyResp =>
       r.post("/me/update", {
-        username: ssoID ? me().username : username(),
+        username: ssoID ? (currentUser?.username || '') : username(),
         password: ssoID ? "" : password(),
-        sso_id: me().sso_id,
+        sso_id: currentUser?.sso_id || '',
       }),
   )
 

@@ -6,22 +6,21 @@ import {
   FormLabel,
   Heading,
   Input,
-  VStack,
   Select,
+  VStack,
 } from "@hope-ui/solid"
 import { MaybeLoading, FolderChooseInput } from "~/components"
-import { useFetch, useRouter, useT } from "~/hooks"
+import { useFetch, useRouter, useT, useManageTitle } from "~/hooks"
 import { handleResp, notify, r } from "~/utils"
-import { PEmptyResp, PResp, User, UserMethods, UserPermissions } from "~/types"
+import { PEmptyResp, PResp, User, UserMethods, UserPermissions, UserRole } from "~/types"
 import { createStore } from "solid-js/store"
 import { For, Show } from "solid-js"
 import { Me, me, setMe } from "~/store"
-import { PublicKeys } from "./PublicKeys"
 
 const Permission = (props: {
+  name: string
   can: boolean
   onChange: (val: boolean) => void
-  name: string
 }) => {
   const t = useT()
   return (
@@ -48,12 +47,13 @@ const AddOrEdit = () => {
   const t = useT()
   const { params, back } = useRouter()
   const { id } = params
-  const [user, setUser] = createStore({
+  useManageTitle(() => `global.${id ? "edit" : "add"}`)
+  const [user, setUser] = createStore<User>({
     id: 0,
     username: "",
     password: "",
     base_path: "",
-    role: 3, // Set default role to TENANT (3)
+    role: UserRole.GENERAL,
     permission: 0,
     disabled: false,
     sso_id: "",
@@ -79,7 +79,7 @@ const AddOrEdit = () => {
     <MaybeLoading loading={userLoading()}>
       <VStack w="$full" alignItems="start" spacing="$2">
         <Heading>{t(`global.${id ? "edit" : "add"}`)}</Heading>
-        <Show when={!(user.role === 1)}>
+        <Show when={!UserMethods.is_guest(user)}>
           <FormControl w="$full" display="flex" flexDirection="column" required>
             <FormLabel for="username" display="flex" alignItems="center">
               {t(`users.username`)}
@@ -93,6 +93,7 @@ const AddOrEdit = () => {
           <FormControl w="$full" display="flex" flexDirection="column" required>
             <FormLabel for="password" display="flex" alignItems="center">
               {t(`users.password`)}
+              {id && `(${t("users.password-tips")})`}
             </FormLabel>
             <Input
               id="password"
@@ -103,21 +104,6 @@ const AddOrEdit = () => {
             />
           </FormControl>
         </Show>
-
-        <FormControl w="$full" display="flex" flexDirection="column">
-          <FormLabel for="role" display="flex" alignItems="center">
-            {t(`users.role`)}
-          </FormLabel>
-          <Select
-            id="role"
-            value={user.role.toString()}
-            onChange={(e) => setUser("role", parseInt(e.currentTarget.value))}
-          >
-            <option value="0">{t("users.roles.general")}</option>
-            <option value="3">{t("users.roles.tenant")}</option>
-            <option value="2">{t("users.roles.admin")}</option>
-          </Select>
-        </FormControl>
 
         <FormControl w="$full" display="flex" flexDirection="column" required>
           <FormLabel for="base_path" display="flex" alignItems="center">
@@ -130,6 +116,25 @@ const AddOrEdit = () => {
             onlyFolder
           />
         </FormControl>
+        
+        <Show when={!UserMethods.is_guest(user)}>
+          <FormControl w="$full" required>
+            <FormLabel for="role" display="flex" alignItems="center">
+              {t(`users.role`)}
+            </FormLabel>
+            <Select
+              id="role"
+              value={user.role}
+              onChange={(e) => setUser("role", Number(e.currentTarget.value))}
+            >
+              <option value={UserRole.GENERAL}>{t("users.role_general")}</option>
+              <option value={UserRole.GUEST}>{t("users.role_guest")}</option>
+              <option value={UserRole.ADMIN}>{t("users.role_admin")}</option>
+              <option value={UserRole.TENANT}>{t("users.role_tenant")}</option>
+            </Select>
+          </FormControl>
+        </Show>
+        
         <FormControl w="$full" required>
           <FormLabel display="flex" alignItems="center">
             {t(`users.permission`)}
@@ -179,9 +184,6 @@ const AddOrEdit = () => {
         >
           {t(`global.${id ? "save" : "add"}`)}
         </Button>
-        <Show when={id && !UserMethods.is_guest(user)}>
-          <PublicKeys isMine={false} userId={parseInt(id)} />
-        </Show>
       </VStack>
     </MaybeLoading>
   )

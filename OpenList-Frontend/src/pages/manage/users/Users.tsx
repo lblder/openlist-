@@ -1,5 +1,10 @@
+import { For, Show, createSignal } from "solid-js"
+import { useFetch, useListFetch, useManageTitle, useT, useRouter } from "~/hooks"
+import { PEmptyResp, PPageResp, User, UserMethods, UserRole } from "~/types"
+import { handleResp, r } from "~/utils"
+import { Wether } from "~/components"
+import { DeletePopover } from "../common/DeletePopover"
 import {
-  Badge,
   Box,
   Button,
   HStack,
@@ -8,42 +13,46 @@ import {
   Td,
   Th,
   Thead,
-  Tooltip,
   Tr,
   VStack,
+  Text
 } from "@hope-ui/solid"
-import { createSignal, For, Show } from "solid-js"
-import {
-  useFetch,
-  useListFetch,
-  useManageTitle,
-  useRouter,
-  useT,
-} from "~/hooks"
-import { handleResp, notify, r } from "~/utils"
-import {
-  UserPermissions,
-  User,
-  UserMethods,
-  PPageResp,
-  PEmptyResp,
-  UserRole,
-} from "~/types"
-import { DeletePopover } from "../common/DeletePopover"
-import { Wether } from "~/components"
+import { UserPermissions } from "~/types"
 
 const Role = (props: { role: number }) => {
   const t = useT()
-  const roles: { name: string; color: string }[] = [
-    { name: t("users.roles.general"), color: "info" },
-    { name: t("users.roles.guest"), color: "neutral" },
-    { name: t("users.roles.admin"), color: "accent" },
-    { name: t("users.roles.tenant"), color: "warning" }, // Add tenant role
-  ]
+  const color = () => {
+    switch (props.role) {
+      case UserRole.ADMIN:
+        return "$danger9"
+      case UserRole.GENERAL:
+        return "$info9"
+      case UserRole.GUEST:
+        return "$warning9"
+      case UserRole.TENANT:
+        return "$primary9"
+      default:
+        return "$neutral9"
+    }
+  }
+  const text = () => {
+    switch (props.role) {
+      case UserRole.ADMIN:
+        return t("users.role_admin")
+      case UserRole.GENERAL:
+        return t("users.role_general")
+      case UserRole.GUEST:
+        return t("users.role_guest")
+      case UserRole.TENANT:
+        return t("users.role_tenant")
+      default:
+        return "Unknown"
+    }
+  }
   return (
-    <Badge colorScheme={roles[props.role]?.color as any}>
-      {roles[props.role]?.name || "Unknown"}
-    </Badge>
+    <Text fontWeight="$medium" color={color()}>
+      {text()}
+    </Text>
   )
 }
 
@@ -54,13 +63,11 @@ const Permissions = (props: { user: User }) => {
     <HStack spacing="$0_5">
       <For each={UserPermissions}>
         {(item, i) => (
-          <Tooltip label={t(`users.permissions.${item}`)}>
-            <Box
-              boxSize="$2"
-              rounded="$full"
-              bg={color(UserMethods.can(props.user, i()))}
-            ></Box>
-          </Tooltip>
+          <Box
+            boxSize="$2"
+            rounded="$full"
+            bg={color(UserMethods.can(props.user, i()))}
+          ></Box>
         )}
       </For>
     </HStack>
@@ -109,14 +116,18 @@ const Users = () => {
         <Table highlightOnHover dense>
           <Thead>
             <Tr>
-              <Show when={true}>
-                <Th>{t(`users.username`)}</Th>
-                <Th>{t(`users.base_path`)}</Th>
-                <Th>{t(`users.role`)}</Th>
-                <Th>{t(`users.permission`)}</Th>
-                <Th>{t(`users.available`)}</Th>
-                <Th>{t("global.operations")}</Th>
-              </Show>
+              <For
+                each={[
+                  "username",
+                  "base_path",
+                  "role",
+                  "permission",
+                  "available",
+                ]}
+              >
+                {(title) => <Th>{t(`users.${title}`)}</Th>}
+              </For>
+              <Th>{t("global.operations")}</Th>
             </Tr>
           </Thead>
           <Tbody>
@@ -137,36 +148,34 @@ const Users = () => {
                   <Td>
                     <HStack spacing="$2">
                       <Button
+                        size="sm"
                         onClick={() => {
                           to(`/@manage/users/edit/${user.id}`)
                         }}
                       >
                         {t("global.edit")}
                       </Button>
-                      <DeletePopover
-                        name={user.username}
-                        loading={deleting() === user.id}
-                        onClick={async () => {
-                          const resp = await deleteUser(user.id)
-                          handleResp(resp, () => {
-                            notify.success(t("global.delete_success"))
-                            refresh()
-                          })
-                        }}
-                      />
-                      <Button
-                        colorScheme="accent"
-                        loading={cancel_2faId() === user.id}
-                        onClick={async () => {
-                          const resp = await cancel_2fa(user.id)
-                          handleResp(resp, () => {
-                            notify.success(t("users.cancel_2fa_success"))
-                            refresh()
-                          })
-                        }}
-                      >
-                        {t("users.cancel_2fa")}
-                      </Button>
+                      <Show when={!UserMethods.is_guest(user)}>
+                        <DeletePopover
+                          name={user.username}
+                          loading={deleting() === user.id}
+                          onClick={async () => {
+                            const resp = await deleteUser(user.id)
+                            handleResp(resp, () => {
+                              refresh()
+                            })
+                          }}
+                        />
+                      </Show>
+                      <Show when={user.otp_secret}>
+                        <Button
+                          size="sm"
+                          loading={cancel_2faId() === user.id}
+                          onClick={() => cancel_2fa(user.id)}
+                        >
+                          {t("users.cancel_2fa")}
+                        </Button>
+                      </Show>
                     </HStack>
                   </Td>
                 </Tr>

@@ -263,3 +263,8 @@ export const updateIndex = async (paths = [], max_depth = -1): PEmptyResp => {
     max_depth,
   })
 }
+
+// 获取用户列表
+export const getUsers = (): Promise<PPageResp<User>> => {
+  return r.get("/admin/user/list")
+}

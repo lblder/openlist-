@@ -2,7 +2,7 @@ import { Center, Heading } from "@hope-ui/solid"
 import { useManageTitle } from "~/hooks"
 
 const SdnControl = () => {
-  useManageTitle("manage.sidemenu.sdn_control")
+  useManageTitle("manage.sidemenu.sdn-control")
   return (
     <Center h="$full">
       <Heading>SDN Control</Heading>
