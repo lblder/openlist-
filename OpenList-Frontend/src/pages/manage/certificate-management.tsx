@@ -133,6 +133,74 @@ const CertificateManagement: Component = () => {
   const [content, setContent] = createSignal("")
   const [formErrors, setFormErrors] = createSignal<Record<string, string>>({})
   
+  // 用户选择相关状态
+  const [userSearch, setUserSearch] = createSignal("")
+  const [isUserSelectOpen, setIsUserSelectOpen] = createSignal(false)
+  
+  // 获取用户列表
+  const fetchUsers = async () => {
+    handleResp<any>(
+      await getUsers(),
+      (data: any) => {
+        setUsers(data.content || [])
+      }
+    )
+  }
+  
+  // 过滤后的用户列表（用于搜索）
+  const filteredUsers = createMemo(() => {
+    if (!userSearch()) {
+      return users()
+    }
+    
+    return users().filter(user => 
+      user.username.toLowerCase().includes(userSearch().toLowerCase())
+    )
+  })
+  
+  // 选择用户
+  const selectUser = (user: User) => {
+    setOwner(user.username)
+    setIsUserSelectOpen(false)
+    setUserSearch("")
+  }
+  
+  // 处理所有者输入变化
+  const handleOwnerInput = (e: Event & { currentTarget: HTMLInputElement }) => {
+    const value = e.currentTarget.value
+    setOwner(value)
+    setUserSearch(value)
+    if (value) {
+      setIsUserSelectOpen(true)
+    }
+  }
+  
+  // 处理搜索输入变化
+  const handleSearchInput = (e: Event & { currentTarget: HTMLInputElement }) => {
+    const value = e.currentTarget.value
+    setUserSearch(value)
+    if (value) {
+      setIsUserSelectOpen(true)
+    }
+  }
+  
+  // 处理证书申请所有者输入变化
+  const handleRequestOwnerInput = (e: Event & { currentTarget: HTMLInputElement }) => {
+    const value = e.currentTarget.value
+    setRequestUserName(value)
+    setUserSearch(value)
+    if (value) {
+      setIsUserSelectOpen(true)
+    }
+  }
+  
+  // 选择证书申请用户
+  const selectRequestUser = (user: User) => {
+    setRequestUserName(user.username)
+    setIsUserSelectOpen(false)
+    setUserSearch("")
+  }
+  
   // 证书申请模态框相关状态
   const [isRequestModalOpen, setIsRequestModalOpen] = createSignal(false)
   const [requestUserName, setRequestUserName] = createSignal("")
@@ -407,16 +475,11 @@ const CertificateManagement: Component = () => {
           
           <HStack spacing="$2">
             {props.cert.type === "user" && (
-              <Icon as={FaSolidUser as any as IconTypes} />
+              <Icon as={FaSolidUser as any} color="white" />
             )}
             {props.cert.type === "node" && (
-              <Icon as={FaSolidServer as any as IconTypes} />
+              <Icon as={FaSolidServer as any} color="white" />
             )}
-            <Text>
-              {props.cert.type === "user" 
-                ? t("certificate.user") 
-                : t("certificate.node")}
-            </Text>
           </HStack>
           
           <Text fontSize="$sm" noOfLines={1}>
@@ -489,7 +552,7 @@ const CertificateManagement: Component = () => {
         </Td>
         <Td>
           <HStack spacing="$2">
-            <Icon as={FaSolidUser as any} />
+            <Icon as={FaSolidUser as any as IconTypes} />
             <Text>{props.cert.owner}</Text>
           </HStack>
         </Td>
@@ -659,6 +722,51 @@ const CertificateManagement: Component = () => {
       </Tr>
     )
   }
+  
+  // 证书申请表格行组件
+  const CertificateRequestTableRow: Component<{ request: CertificateRequest, refresh: () => void }> = (props) => {
+    return (
+      <Tr>
+        <Td>
+          <HStack spacing="$2">
+            {props.request.type === "user" && (
+              <Icon as={FaSolidUser as any} color="white" />
+            )}
+            {props.request.type === "node" && (
+              <Icon as={FaSolidServer as any} color="white" />
+            )}
+            <Text>
+              {props.request.type === "user"
+                ? props.request.user_name
+                : props.request.node_name}
+            </Text>
+          </HStack>
+        </Td>
+        <Td>
+          <HStack spacing="$2">
+            <Badge
+              colorScheme={
+                props.request.type === "user" ? "info" : "accent"
+              }
+            >
+              {t(`certificate.${props.request.type}`)}
+            </Badge>
+          </HStack>
+        </Td>
+        <Td>{new Date(props.request.created_at).toLocaleDateString()}</Td>
+        <Td>
+          <CertificateRequestOp request={props.request} refresh={props.refresh} />
+        </Td>
+      </Tr>
+    )
+  }
+  
+  // 当打开证书模态框时获取用户列表
+  createEffect(() => {
+    if (isOpen()) {
+      fetchUsers()
+    }
+  })
   
   return (
     <VStack spacing="$4" alignItems="start" w="$full">
@@ -941,11 +1049,100 @@ const CertificateManagement: Component = () => {
               
               <FormControl invalid={!!formErrors().owner}>
                 <FormLabel>{t("certificate.owner")}</FormLabel>
-                <Input
-                  value={owner()}
-                  onInput={(e) => setOwner(e.currentTarget.value)}
-                  placeholder={t("certificate.owner_placeholder") || "Enter owner"}
-                />
+                <Popover opened={isUserSelectOpen()} onChange={setIsUserSelectOpen}>
+                  <PopoverTrigger>
+                    <InputGroup>
+                      <Input
+                        value={owner()}
+                        onInput={handleOwnerInput}
+                        onFocus={() => owner() && setIsUserSelectOpen(true)}
+                        placeholder={t("certificate.owner_placeholder") || "Enter owner"}
+                        autocomplete="off"
+                      />
+                      <InputRightElement>
+                        <BiSolidUser color="$neutral8" />
+                      </InputRightElement>
+                    </InputGroup>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    w="100%" 
+                    rounded="$md"
+                    shadow="$lg"
+                    border="1px solid $neutral7"
+                  >
+                    <PopoverBody p="$0">
+                      <VStack 
+                        w="$full" 
+                        spacing="$1" 
+                        maxH="250px" 
+                        overflowY="auto"
+                        rounded="$md"
+                      >
+                        <InputGroup>
+                          <Input
+                            placeholder={t("certificate.search_user") || "Search user..."}
+                            value={userSearch()}
+                            onInput={handleSearchInput}
+                            onFocus={() => setIsUserSelectOpen(true)}
+                            autocomplete="off"
+                            variant="unstyled"
+                            p="$2"
+                            borderBottom="1px solid $neutral7"
+                            rounded="$0"
+                          />
+                          <InputRightElement>
+                            <BiSolidUser color="$neutral8" />
+                          </InputRightElement>
+                        </InputGroup>
+                        <Show when={!!filteredUsers().length}>
+                          <For each={filteredUsers()}>
+                            {(user: User) => (
+                              <Box
+                                w="$full"
+                                p="$3"
+                                cursor="pointer"
+                                _hover={{ bg: "$info3" } as any}
+                                onClick={() => selectUser(user)}
+                                transition="all 0.2s"
+                              >
+                                <HStack spacing="$3">
+                                  <Box
+                                    w="$8"
+                                    h="$8"
+                                    rounded="$full"
+                                    bg="$info5"
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                  >
+                                    <FaSolidUser color="white" />
+                                  </Box>
+                                  <VStack alignItems="start" spacing="$1">
+                                    <Text fontWeight="$medium">{user?.username || "N/A"}</Text>
+                                    <Text fontSize="$sm" color="$neutral11">
+                                      {user.role !== undefined 
+                                        ? user.role === 0 ? "General User" 
+                                          : user.role === 1 ? "Guest" 
+                                          : user.role === 2 ? "Administrator" 
+                                          : user.role === 3 ? "Tenant" 
+                                          : "Unknown"
+                                        : "Unknown"}
+                                    </Text>
+                                  </VStack>
+                                </HStack>
+                              </Box>
+                            )}
+                          </For>
+                        </Show>
+                        <Show when={!filteredUsers().length && !!userSearch()}>
+                          <Box w="$full" p="$4" textAlign="center">
+                            <Text color="$neutral11">{t("certificate.no_users_found")}</Text>
+                          </Box>
+                        </Show>
+                      </VStack>
+                    </PopoverBody>
+                  </PopoverContent>
+                </Popover>
                 <FormErrorMessage>{formErrors().owner}</FormErrorMessage>
               </FormControl>
               
@@ -1008,17 +1205,106 @@ const CertificateManagement: Component = () => {
             <VStack spacing="$4">
               <FormControl invalid={!!requestFormErrors().userName}>
                 <FormLabel>{t("certificate.owner")}</FormLabel>
-                <Input
-                  value={requestUserName()}
-                  onInput={(e) => setRequestUserName(e.currentTarget.value)}
-                  placeholder={t("certificate.owner_placeholder") || "Enter owner"}
-                />
+                <Popover opened={isUserSelectOpen()} onChange={setIsUserSelectOpen}>
+                  <PopoverTrigger>
+                    <InputGroup>
+                      <Input
+                        value={requestUserName()}
+                        onInput={handleRequestOwnerInput}
+                        onFocus={() => requestUserName() && setIsUserSelectOpen(true)}
+                        placeholder={t("certificate.owner_placeholder") || "Enter owner"}
+                        autocomplete="off"
+                      />
+                      <InputRightElement>
+                        <BiSolidUser color="$neutral8" />
+                      </InputRightElement>
+                    </InputGroup>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    w="100%" 
+                    rounded="$md"
+                    shadow="$lg"
+                    border="1px solid $neutral7"
+                  >
+                    <PopoverBody p="$0">
+                      <VStack 
+                        w="$full" 
+                        spacing="$1" 
+                        maxH="250px" 
+                        overflowY="auto"
+                        rounded="$md"
+                      >
+                        <InputGroup>
+                          <Input
+                            placeholder={t("certificate.search_user") || "Search user..."}
+                            value={userSearch()}
+                            onInput={handleSearchInput}
+                            onFocus={() => setIsUserSelectOpen(true)}
+                            autocomplete="off"
+                            variant="unstyled"
+                            p="$2"
+                            borderBottom="1px solid $neutral7"
+                            rounded="$0"
+                          />
+                          <InputRightElement>
+                            <BiSolidUser color="$neutral8" />
+                          </InputRightElement>
+                        </InputGroup>
+                        <Show when={!!filteredUsers().length}>
+                          <For each={filteredUsers()}>
+                            {(user: User) => (
+                              <Box
+                                w="$full"
+                                p="$3"
+                                cursor="pointer"
+                                _hover={{ bg: "$info3" } as any}
+                                onClick={() => selectRequestUser(user)}
+                                transition="all 0.2s"
+                              >
+                                <HStack spacing="$3">
+                                  <Box
+                                    w="$8"
+                                    h="$8"
+                                    rounded="$full"
+                                    bg="$info5"
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                  >
+                                    <FaSolidUser color="white" />
+                                  </Box>
+                                  <VStack alignItems="start" spacing="$1">
+                                    <Text fontWeight="$medium">{user?.username || "N/A"}</Text>
+                                    <Text fontSize="$sm" color="$neutral11">
+                                      {user.role !== undefined 
+                                        ? user.role === 0 ? "General User" 
+                                          : user.role === 1 ? "Guest" 
+                                          : user.role === 2 ? "Administrator" 
+                                          : user.role === 3 ? "Tenant" 
+                                          : "Unknown"
+                                        : "Unknown"}
+                                    </Text>
+                                  </VStack>
+                                </HStack>
+                              </Box>
+                            )}
+                          </For>
+                        </Show>
+                        <Show when={!filteredUsers().length && !!userSearch()}>
+                          <Box w="$full" p="$4" textAlign="center">
+                            <Text color="$neutral11">{t("certificate.no_users_found")}</Text>
+                          </Box>
+                        </Show>
+                      </VStack>
+                    </PopoverBody>
+                  </PopoverContent>
+                </Popover>
                 <FormErrorMessage>{requestFormErrors().userName}</FormErrorMessage>
               </FormControl>
               
               <FormControl>
                 <FormLabel>{t("certificate.type")}</FormLabel>
-                <Select value={requestType()} onChange={(value) => setRequestType(value as any)}>
+                <Select value={requestType()} onChange={(value) => setRequestType(value as "user" | "node")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
