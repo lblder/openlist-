@@ -27,6 +27,11 @@ var (
 	WrongShareCode  = errors.New("wrong share code")
 	InvalidSharing  = errors.New("invalid sharing")
 	SharingNotFound = errors.New("sharing not found")
+	
+	// Certificate errors
+	CertificateAlreadyExists   = errors.New("certificate already exists")
+	CertificateRequestPending  = errors.New("certificate request is pending")
+	CertificateRequestNotPending = errors.New("certificate request is not pending")
 )
 
 // NewErr wrap constant error with an extra message

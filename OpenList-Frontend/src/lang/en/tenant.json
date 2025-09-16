@@ -4,19 +4,17 @@
     "dashboard": "Dashboard",
     "profile": "Profile",
     "access": "Access Management",
-    "data": "Data Management"
+    "data": "Data Management",
+    "certificates": "Certificate Management"
   },
   "logout_success": "Logout successfully",
   "dashboard": {
     "title": "Tenant Dashboard",
-    "welcome": "Welcome to OpenList Tenant System",
-    "description": "Here you can manage your files, access permissions, and configuration settings.",
-    "profile": "Profile",
-    "profile_desc": "View and manage your profile information",
-    "access": "Access Management",
-    "access_desc": "View OpenVPN connection information and certificate management",
-    "data": "Data Management",
-    "data_desc": "Manage your files and data storage"
+    "welcome": "Welcome",
+    "storage_used": "Storage Used",
+    "bandwidth_used": "Bandwidth Used",
+    "active_users": "Active Users",
+    "recent_activity": "Recent Activity"
   },
   "profile": {
     "title": "Profile",

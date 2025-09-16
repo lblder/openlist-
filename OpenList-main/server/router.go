@@ -102,6 +102,15 @@ func Init(e *gin.Engine) {
 	public.Any("/offline_download_tools", handles.OfflineDownloadTools)
 	public.Any("/archive_extensions", handles.ArchiveExtensions)
 
+	// **问题修复点**: 将租户证书路由整合到主路由 `auth` 组下
+	tenant := auth.Group("/tenant")
+	{
+		tenant.POST("/certificate/request", handles.CreateTenantCertificateRequest)
+		tenant.GET("/certificate", handles.GetTenantCertificate)
+		tenant.GET("/certificate/requests", handles.GetTenantCertificateRequests)
+		tenant.GET("/certificate/download", handles.DownloadCertificate)
+	}
+
 	_fs(auth.Group("/fs"))
 	fsAndShare(api.Group("/fs", middlewares.Auth(true)))
 	_task(auth.Group("/task", middlewares.AuthNotGuest))
@@ -166,6 +175,21 @@ func admin(g *gin.RouterGroup) {
 	setting.POST("/set_thunderx", handles.SetThunderX)
 	setting.POST("/set_thunder_browser", handles.SetThunderBrowser)
 
+	// **问题修复点**: 将证书管理路由整合到 admin 路由组下
+	certificate := g.Group("/certificate")
+	{
+		certificate.GET("/list", handles.CertificateList)
+		certificate.POST("/create", handles.CreateCertificate)
+		certificate.PUT("/update/:id", handles.UpdateCertificate)
+		certificate.DELETE("/delete/:id", handles.DeleteCertificate)
+		certificate.POST("/revoke/:id", handles.RevokeCertificate)
+		certificate.GET("/requests", handles.CertificateRequestList)
+		certificate.POST("/request/create", handles.CreateCertificateRequest)
+		certificate.POST("/request/approve/:id", handles.ApproveCertificateRequest)
+		certificate.POST("/request/reject/:id", handles.RejectCertificateRequest)
+		certificate.GET("/download/:id", handles.DownloadCertificate)
+	}
+
 	// retain /admin/task API to ensure compatibility with legacy automation scripts
 	_task(g.Group("/task"))
 
@@ -206,9 +230,6 @@ func _fs(g *gin.RouterGroup) {
 	g.PUT("/put", middlewares.FsUp, uploadLimiter, handles.FsStream)
 	g.PUT("/form", middlewares.FsUp, uploadLimiter, handles.FsForm)
 	g.POST("/link", middlewares.AuthAdmin, handles.Link)
-	// g.POST("/add_aria2", handles.AddOfflineDownload)
-	// g.POST("/add_qbit", handles.AddQbittorrent)
-	// g.POST("/add_transmission", handles.SetTransmission)
 	g.POST("/add_offline_download", handles.AddOfflineDownload)
 	g.POST("/archive/decompress", handles.FsArchiveDecompress)
 }
@@ -229,7 +250,6 @@ func _sharing(g *gin.RouterGroup) {
 
 func Cors(r *gin.Engine) {
 	config := cors.DefaultConfig()
-	// config.AllowAllOrigins = true
 	config.AllowOrigins = conf.Conf.Cors.AllowOrigins
 	config.AllowHeaders = conf.Conf.Cors.AllowHeaders
 	config.AllowMethods = conf.Conf.Cors.AllowMethods
@@ -239,40 +259,4 @@ func Cors(r *gin.Engine) {
 func InitS3(e *gin.Engine) {
 	Cors(e)
 	S3Server(e.Group("/"))
-}
-
-func initRouter() *gin.Engine {
-	e := gin.Default()
-	e.Use(gin.Recovery())
-	e.Use(middlewares.FilteredLogger())
-	Cors(e)
-
-	auth := middlewares.Auth(false)
-	manage := e.Group("/manage")
-	manage.Use(auth)
-
-	// 证书管理
-	certificate := manage.Group("/certificate")
-	{
-		certificate.GET("/list", handles.CertificateList)
-		certificate.POST("/create", handles.CreateCertificate)
-		certificate.PUT("/update/:id", handles.UpdateCertificate)
-		certificate.DELETE("/delete/:id", handles.DeleteCertificate)
-		certificate.GET("/requests", handles.CertificateRequestList)
-		certificate.POST("/request/create", handles.CreateCertificateRequest)
-		certificate.POST("/request/approve/:id", handles.ApproveCertificateRequest)
-		certificate.POST("/request/reject/:id", handles.RejectCertificateRequest)
-		certificate.GET("/download/:id", handles.DownloadCertificate)
-	}
-
-	// 租户证书申请
-	tenant := manage.Group("/tenant")
-	tenant.Use(auth)
-	{
-		tenant.POST("/certificate/request", handles.CreateCertificateRequest)
-		tenant.GET("/certificates", handles.CertificateList)
-		tenant.GET("/certificate/:id", handles.GetCertificate)
-	}
-	
-	return e
 }

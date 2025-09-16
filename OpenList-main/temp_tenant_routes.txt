@@ -1,0 +1,8 @@
+﻿// 更新租户路由配置
+tenant := auth.Group("/tenant")
+{
+tenant.POST("/certificate/request", handles.CreateTenantCertificateRequest)
+tenant.GET("/certificate", handles.GetTenantCertificate)
+tenant.GET("/certificate/requests", handles.GetTenantCertificateRequests)
+tenant.GET("/certificate/download", handles.DownloadCertificate)
+}

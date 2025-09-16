@@ -50,6 +50,9 @@ func GetPublicSettingsMap() map[string]string {
 	return pSettings
 }
 
+var GetSetting = GetSettingItems
+
+// GetSettingsMap returns all settings as a map
 func GetSettingsMap() map[string]string {
 	items, _ := GetSettingItems()
 	settings := make(map[string]string)

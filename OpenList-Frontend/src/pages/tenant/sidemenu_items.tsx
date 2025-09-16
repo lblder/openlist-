@@ -3,17 +3,9 @@ import {
   BsPersonCircle,
   BsHddNetwork,
   BsBucket,
+  BsShieldLock,
 } from "solid-icons/bs"
 import { Component, lazy } from "solid-js"
-import { Center, Heading } from "@hope-ui/solid"
-
-const Placeholder = (props: { title: string }) => {
-  return (
-    <Center h="$full">
-      <Heading>{props.title}</Heading>
-    </Center>
-  )
-}
 
 export const side_menu_items: SideMenuItem[] = [
   {
@@ -39,5 +31,11 @@ export const side_menu_items: SideMenuItem[] = [
     icon: BsBucket,
     to: "/@tenant/data",
     component: lazy(() => import("./DataManagement")),
+  },
+  {
+    title: "tenant.sidemenu.certificates",
+    icon: BsShieldLock,
+    to: "/@tenant/certificates",
+    component: lazy(() => import("./Certificates")),
   },
 ]
