@@ -266,8 +266,8 @@ func GetTenantCertificateRequests(c *gin.Context) {
 // CreateTenantCertificateRequest 租户创建证书申请
 func CreateTenantCertificateRequest(c *gin.Context) {
 	// 1. 安全地从上下文中获取用户
-	_user, ok := c.Get(string(conf.UserKey))
-	if !ok {
+	_user := c.Request.Context().Value(conf.UserKey)
+	if _user == nil {
 		common.ErrorResp(c, errors.New("user not found in context"), http.StatusUnauthorized)
 		return
 	}
@@ -283,25 +283,17 @@ func CreateTenantCertificateRequest(c *gin.Context) {
 		return
 	}
 
-	// 3. 【核心修复】调用业务逻辑层(op)的函数，而不是数据库层(db)
+	// 3. 使用op包中的业务逻辑函数处理申请
 	request, err := op.CreateTenantCertificateRequest(user, req.Type, req.Reason)
 	if err != nil {
-		// 4. 优雅地处理特定的业务错误
-		if errors.Is(err, errs.CertificateAlreadyExists) {
-			common.ErrorResp(c, err, http.StatusConflict) // 409 Conflict 更符合语义
-			return
+		if errors.Is(err, errs.CertificateAlreadyExists) || errors.Is(err, errs.CertificateRequestPending) {
+			common.ErrorResp(c, err, 409)
+		} else {
+			common.ErrorResp(c, err, 500)
 		}
-		if errors.Is(err, errs.CertificateRequestPending) {
-			common.ErrorResp(c, err, http.StatusConflict) // 409 Conflict
-			return
-		}
-
-		// 5. 处理其他未知错误
-		common.ErrorResp(c, err, 500)
 		return
 	}
 
-	// 6. 成功响应
 	common.SuccessResp(c, request)
 }
 

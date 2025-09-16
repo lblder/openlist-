@@ -13,6 +13,11 @@ const instance = axios.create({
 
 instance.interceptors.request.use(
   (config) => {
+    // 每次请求都从localStorage获取最新的Token
+    const token = localStorage.getItem("token") || ""
+    if (token) {
+      config.headers.Authorization = token
+    }
     // do something before request is sent
     return config
   },
@@ -52,11 +57,12 @@ instance.interceptors.response.use(
   },
 )
 
-instance.defaults.headers.common["Authorization"] =
-  localStorage.getItem("token") || ""
+// 删除初始化时设置的默认Authorization头
+// instance.defaults.headers.common["Authorization"] =
+//   localStorage.getItem("token") || ""
 
 export const changeToken = (token?: string) => {
-  instance.defaults.headers.common["Authorization"] = token ?? ""
+  // 只更新localStorage，不更新默认请求头
   localStorage.setItem("token", token ?? "")
 }
 
