@@ -247,6 +247,9 @@ const CertificateManagement: Component = () => {
     setExpirationDate("")
     setContent("")
     setFormErrors({})
+    // 清除用户搜索状态
+    setUserSearch("")
+    setIsUserSelectOpen(false)
     setIsOpen(true)
   }
   
@@ -260,12 +263,18 @@ const CertificateManagement: Component = () => {
     setExpirationDate(cert.expiration_date)
     setContent(cert.content || "")
     setFormErrors({})
+    // 清除用户搜索状态
+    setUserSearch("")
+    setIsUserSelectOpen(false)
     setIsOpen(true)
   }
   
   // 关闭模态框
   const onClose = () => {
     setIsOpen(false)
+    // 清除用户搜索状态
+    setUserSearch("")
+    setIsUserSelectOpen(false)
   }
   
   // 表单验证
@@ -296,13 +305,17 @@ const CertificateManagement: Component = () => {
   const saveCertificate = async () => {
     if (!validateForm()) return
     
+    // 将日期字符串转换为完整的ISO时间格式
+    const issuedDateISO = issuedDate() ? new Date(issuedDate()).toISOString() : "";
+    const expirationDateISO = expirationDate() ? new Date(expirationDate()).toISOString() : "";
+    
     const certData = {
       name: name(),
       type: type(),
       owner: owner(),
       owner_id: users().find(u => u.username === owner())?.id,
-      issued_date: issuedDate(),
-      expiration_date: expirationDate(),
+      issued_date: issuedDateISO,
+      expiration_date: expirationDateISO,
       content: content()
     }
     
@@ -376,12 +389,18 @@ const CertificateManagement: Component = () => {
     setRequestType("user")
     setRequestReason("")
     setRequestFormErrors({})
+    // 清除用户搜索状态
+    setUserSearch("")
+    setIsUserSelectOpen(false)
     setIsRequestModalOpen(true)
   }
   
   // 关闭证书申请模态框
   const onRequestModalClose = () => {
     setIsRequestModalOpen(false)
+    // 清除用户搜索状态
+    setUserSearch("")
+    setIsUserSelectOpen(false)
   }
   
   // 验证证书申请表单
