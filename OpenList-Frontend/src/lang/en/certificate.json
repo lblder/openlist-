@@ -29,10 +29,12 @@
   "name_required": "Certificate name is required",
   "owner_required": "Owner is required",
   "reason_required": "Reason is required",
+  "type_required": "Certificate type is required",
   "expiration_date_required": "Expiration date is required",
   "issued_date_required": "Issued date is required",
   "add_certificate": "Add Certificate",
   "apply_certificate": "Apply Certificate",
+  "request_certificate": "Request Certificate",
   "edit_certificate": "Edit Certificate",
   "delete_certificate": "Delete Certificate",
   "certificate_list": "Certificate List",
@@ -63,5 +65,8 @@
   "no_requests_desc": "You haven't submitted any certificate requests yet",
   "created_at": "Created At",
   "reason": "Reason",
-  "confirm_revoke": "Are you sure you want to revoke this certificate? This action cannot be undone."
+  "confirm_revoke": "Are you sure you want to revoke this certificate? This action cannot be undone.",
+  "content": "Content",
+  "content_placeholder": "Please enter certificate content",
+  "reject_reason": "Reject reason"
 }

@@ -1,7 +1,8 @@
-﻿package db
+package db
 
 import (
 	"fmt"
+	"time"
 	
 	"github.com/OpenListTeam/OpenList/v4/internal/model"
 	"github.com/pkg/errors"
@@ -32,7 +33,9 @@ func GetCertificateByID(id uint) (*model.Certificate, error) {
 func GetCertificateByOwnerID(ownerID uint) (*model.Certificate, error) {
 	var cert model.Certificate
 	// 一个租户只应该有一个有效证书，所以使用 First
-	if err := db.Where("owner_id = ?", ownerID).First(&cert).Error; err != nil {
+	// 只查询状态为 valid 或 expiring 且未过期的证书
+	if err := db.Where("owner_id = ? AND (status = ? OR status = ?) AND expiration_date > ?", 
+		ownerID, model.CertificateStatusValid, model.CertificateStatusExpiring, time.Now()).First(&cert).Error; err != nil {
 		return nil, err // GORM 会在找不到记录时返回 ErrRecordNotFound
 	}
 	return &cert, nil

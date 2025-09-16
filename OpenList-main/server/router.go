@@ -102,7 +102,12 @@ func Init(e *gin.Engine) {
 	public.Any("/offline_download_tools", handles.OfflineDownloadTools)
 	public.Any("/archive_extensions", handles.ArchiveExtensions)
 
-	// **问题修复点**: 将租户证书路由整合到主路由 `auth` 组下
+	_fs(auth.Group("/fs"))
+	fsAndShare(api.Group("/fs", middlewares.Auth(true)))
+	_task(auth.Group("/task", middlewares.AuthNotGuest))
+	_sharing(auth.Group("/share", middlewares.AuthNotGuest))
+	
+	// 租户证书路由应该在auth路由组下，确保认证中间件被正确应用
 	tenant := auth.Group("/tenant")
 	{
 		tenant.POST("/certificate/request", handles.CreateTenantCertificateRequest)
@@ -111,10 +116,6 @@ func Init(e *gin.Engine) {
 		tenant.GET("/certificate/download", handles.DownloadCertificate)
 	}
 
-	_fs(auth.Group("/fs"))
-	fsAndShare(api.Group("/fs", middlewares.Auth(true)))
-	_task(auth.Group("/task", middlewares.AuthNotGuest))
-	_sharing(auth.Group("/share", middlewares.AuthNotGuest))
 	admin(auth.Group("/admin", middlewares.AuthAdmin))
 	if flags.Debug || flags.Dev {
 		debug(g.Group("/debug"))

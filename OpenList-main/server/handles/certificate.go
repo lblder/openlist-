@@ -6,8 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+	"gorm.io/gorm"
 
 	"github.com/OpenListTeam/OpenList/v4/internal/conf"
+	"github.com/OpenListTeam/OpenList/v4/internal/errs"
 	"github.com/OpenListTeam/OpenList/v4/internal/model"
 	"github.com/OpenListTeam/OpenList/v4/internal/op"
 	"github.com/OpenListTeam/OpenList/v4/server/common"
@@ -219,31 +221,59 @@ func RevokeCertificate(c *gin.Context) {
 
 // --- Tenant Handlers ---
 
-// GetTenantCertificate 获取租户自己的证书，逻辑清晰
+// GetTenantCertificate 获取租户自己的证书
 func GetTenantCertificate(c *gin.Context) {
-	user := c.MustGet(string(conf.UserKey)).(*model.User)
-	cert, err := op.GetCertificateForTenant(user.ID)
-	if err != nil {
-		common.ErrorResp(c, err, 500)
+	// FINAL FIX: Use c.Request.Context().Value() to retrieve the user
+	_user := c.Request.Context().Value(conf.UserKey)
+	if _user == nil {
+		common.ErrorResp(c, errors.New("user not found in context"), http.StatusUnauthorized)
 		return
 	}
-	common.SuccessResp(c, cert)
+	user := _user.(*model.User)
+
+	certificate, err := op.GetCertificateForTenant(user.ID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			common.ErrorResp(c, err, 500)
+			return
+		}
+		common.SuccessResp(c, nil)
+		return
+	}
+
+	common.SuccessResp(c, certificate)
 }
 
-// GetTenantCertificateRequests 获取租户自己的证书申请列表
+// GetTenantCertificateRequests 获取租户自己的证书申请
 func GetTenantCertificateRequests(c *gin.Context) {
-	user := c.MustGet(string(conf.UserKey)).(*model.User)
+	// FINAL FIX: Use c.Request.Context().Value() to retrieve the user
+	_user := c.Request.Context().Value(conf.UserKey)
+	if _user == nil {
+		common.ErrorResp(c, errors.New("user not found in context"), http.StatusUnauthorized)
+		return
+	}
+	user := _user.(*model.User)
+
 	requests, err := op.GetTenantCertificateRequests(user.ID)
 	if err != nil {
 		common.ErrorResp(c, err, 500)
 		return
 	}
+
 	common.SuccessResp(c, requests)
 }
 
 // CreateTenantCertificateRequest 租户创建证书申请
 func CreateTenantCertificateRequest(c *gin.Context) {
-	user := c.MustGet(string(conf.UserKey)).(*model.User)
+	// 1. 安全地从上下文中获取用户
+	_user, ok := c.Get(string(conf.UserKey))
+	if !ok {
+		common.ErrorResp(c, errors.New("user not found in context"), http.StatusUnauthorized)
+		return
+	}
+	user := _user.(*model.User)
+
+	// 2. 绑定请求的 JSON 数据
 	var req struct {
 		Type   model.CertificateType `json:"type" binding:"required"`
 		Reason string                `json:"reason"`
@@ -252,12 +282,26 @@ func CreateTenantCertificateRequest(c *gin.Context) {
 		common.ErrorResp(c, err, 400)
 		return
 	}
-	// 调用服务层，服务层会处理"是否已申请"或"是否已有证书"的校验
+
+	// 3. 【核心修复】调用业务逻辑层(op)的函数，而不是数据库层(db)
 	request, err := op.CreateTenantCertificateRequest(user, req.Type, req.Reason)
 	if err != nil {
+		// 4. 优雅地处理特定的业务错误
+		if errors.Is(err, errs.CertificateAlreadyExists) {
+			common.ErrorResp(c, err, http.StatusConflict) // 409 Conflict 更符合语义
+			return
+		}
+		if errors.Is(err, errs.CertificateRequestPending) {
+			common.ErrorResp(c, err, http.StatusConflict) // 409 Conflict
+			return
+		}
+
+		// 5. 处理其他未知错误
 		common.ErrorResp(c, err, 500)
 		return
 	}
+
+	// 6. 成功响应
 	common.SuccessResp(c, request)
 }
 
@@ -275,6 +319,12 @@ func DownloadCertificate(c *gin.Context) {
 	}
 	if cert.Status != model.CertificateStatusValid && cert.Status != model.CertificateStatusExpiring {
 		common.ErrorResp(c, errors.New("certificate is not available for download"), 403)
+		return
+	}
+	
+	// 检查证书是否过期
+	if cert.IsExpired() {
+		common.ErrorResp(c, errors.New("certificate has expired"), 403)
 		return
 	}
 

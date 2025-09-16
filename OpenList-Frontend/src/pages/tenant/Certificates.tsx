@@ -49,12 +49,13 @@ import {
   downloadTenantCertificate
 } from "~/utils/certificate"
 import { notify } from "~/utils"
+import type { Certificate, CertificateRequest, Resp } from "~/types"
 
 const Certificates = () => {
   const t = useT()
   useManageTitle("certificate.title")
-  const [cert, setCert] = createSignal<any>(null)
-  const [requests, setRequests] = createSignal<any[]>([])
+  const [cert, setCert] = createSignal<Certificate | null>(null)
+  const [requests, setRequests] = createSignal<CertificateRequest[]>([])
   const [loading, data] = useFetch(getTenantCertificate)
   const [, requestsData] = useFetch(getTenantCertificateRequests)
   const [type, setType] = createSignal<"user" | "node">("user")
@@ -64,11 +65,11 @@ const Certificates = () => {
   const [, createRequest] = useFetch(createTenantCertificateRequest)
   
   createEffect(() => {
-    data().then((response) => {
-      handleResp(response, (data: any) => setCert(data))
+    data().then((response: Resp<Certificate | null>) => {
+      handleResp<Certificate | null>(response, (data) => setCert(data))
     })
-    requestsData().then((response) => {
-      handleResp(response, (data: any) => setRequests(data))
+    requestsData().then((response: Resp<CertificateRequest[]>) => {
+      handleResp<CertificateRequest[]>(response, (data) => setRequests(data || []))
     })
   })
 
@@ -95,8 +96,8 @@ const Certificates = () => {
       setReason("")
       setErrors({})
       // Refresh requests
-      requestsData().then((response) => {
-        handleResp(response, (data) => setRequests(data))
+      requestsData().then((response: Resp<CertificateRequest[]>) => {
+        handleResp<CertificateRequest[]>(response, (data) => setRequests(data || []))
       })
     })
   }
@@ -159,8 +160,8 @@ const Certificates = () => {
                 <Text>{t("certificate.owner")}: {cert()!.owner}</Text>
               </HStack>
               <HStack w="$full" justifyContent="space-between">
-                <Text>{t("certificate.issued_date")}: {new Date(cert()!.issued_date).toLocaleDateString()}</Text>
-                <Text>{t("certificate.expiration_date")}: {new Date(cert()!.expiration_date).toLocaleDateString()}</Text>
+                <Text>{t("certificate.issued_date")}: {cert()!.issued_date ? new Date(cert()!.issued_date).toLocaleDateString() : 'N/A'}</Text>
+                <Text>{t("certificate.expiration_date")}: {cert()!.expiration_date ? new Date(cert()!.expiration_date).toLocaleDateString() : 'N/A'}</Text>
               </HStack>
               <Button onClick={downloadCert}>
                 {t("certificate.download")}
@@ -184,18 +185,20 @@ const Certificates = () => {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {requests().map((r: any) => (
-                      <Tr>
-                        <Td>{t(`certificate.${r.type}`)}</Td>
-                        <Td>{r.reason}</Td>
-                        <Td>
-                          <Badge colorScheme={r.status === "pending" ? "warning" : r.status === "valid" ? "success" : "danger"}>
-                            {t(`certificate.${r.status}`)}
-                          </Badge>
-                        </Td>
-                        <Td>{new Date(r.created_at).toLocaleDateString()}</Td>
-                      </Tr>
-                    ))}
+                    <For each={requests()}>
+                      {(r) => (
+                        <Tr>
+                          <Td>{t(`certificate.${r.type}`)}</Td>
+                          <Td>{r.reason}</Td>
+                          <Td>
+                            <Badge colorScheme={r.status === "pending" ? "warning" : r.status === "valid" ? "success" : "danger"}>
+                              {t(`certificate.${r.status}`)}
+                            </Badge>
+                          </Td>
+                          <Td>{r.created_at ? new Date(r.created_at).toLocaleDateString() : 'N/A'}</Td>
+                        </Tr>
+                      )}
+                    </For>
                   </Tbody>
                 </Table>
               </Box>
