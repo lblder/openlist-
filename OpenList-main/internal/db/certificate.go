@@ -1,6 +1,8 @@
 ﻿package db
 
 import (
+	"fmt"
+	
 	"github.com/OpenListTeam/OpenList/v4/internal/model"
 	"github.com/pkg/errors"
 )
@@ -12,7 +14,7 @@ func GetCertificates(pageIndex, pageSize int) (certs []model.Certificate, count 
 	if err := certDB.Count(&count).Error; err != nil {
 		return nil, 0, errors.Wrapf(err, "failed get certificates count")
 	}
-	if err := certDB.Order(columnName("id")).Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(&certs).Error; err != nil {
+	if err := certDB.Order(fmt.Sprintf("%s DESC", columnName("id"))).Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(&certs).Error; err != nil {
 		return nil, 0, errors.Wrapf(err, "failed find certificates")
 	}
 	return certs, count, nil
@@ -55,7 +57,7 @@ func GetCertificateRequests(pageIndex, pageSize int) (reqs []model.CertificateRe
 	if err := reqDB.Count(&count).Error; err != nil {
 		return nil, 0, errors.Wrapf(err, "failed get certificate requests count")
 	}
-	if err := reqDB.Order(columnName("id desc")).Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(&reqs).Error; err != nil {
+	if err := reqDB.Order(fmt.Sprintf("%s DESC", columnName("id"))).Offset((pageIndex - 1) * pageSize).Limit(pageSize).Find(&reqs).Error; err != nil {
 		return nil, 0, errors.Wrapf(err, "failed find certificate requests")
 	}
 	return reqs, count, nil
@@ -72,7 +74,7 @@ func GetCertificateRequestByID(id uint) (*model.CertificateRequest, error) {
 // GetCertificateRequestsByUserID 获取某个用户的所有申请记录
 func GetCertificateRequestsByUserID(userID uint) ([]model.CertificateRequest, error) {
 	var requests []model.CertificateRequest
-	if err := db.Where("user_id = ?", userID).Order("id desc").Find(&requests).Error; err != nil {
+	if err := db.Where("user_id = ?", userID).Order(fmt.Sprintf("%s DESC", columnName("id"))).Find(&requests).Error; err != nil {
 		return nil, errors.Wrapf(err, "failed get certificate requests for user id: %d", userID)
 	}
 	return requests, nil
