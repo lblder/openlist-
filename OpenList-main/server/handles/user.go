@@ -36,12 +36,17 @@ func ListUsers(c *gin.Context) {
 
 // GetUser 获取用户信息
 func GetUser(c *gin.Context) {
-	id, err := getIDFromParam(c)
-	if err != nil {
-		common.ErrorResp(c, err, 400)
+	idStr := c.Query("id")
+	if idStr == "" {
+		common.ErrorResp(c, errors.New("missing id parameter"), 400)
 		return
 	}
-	user, err := op.GetUserById(id)
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		common.ErrorResp(c, errors.New("invalid ID format"), 400)
+		return
+	}
+	user, err := op.GetUserById(uint(id))
 	if err != nil {
 		common.ErrorResp(c, err, 500)
 		return
