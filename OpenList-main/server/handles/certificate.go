@@ -78,7 +78,7 @@ func CreateCertificateRequest(c *gin.Context) {
 		UserName string                `json:"user_name" binding:"required"`
 		UserID   uint                  `json:"user_id"`
 		Type     model.CertificateType `json:"type" binding:"required"`
-		Reason   string                `json:"reason"`
+		Reason   string                `json:"reason" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		common.ErrorResp(c, err, 400)
@@ -172,7 +172,15 @@ func ApproveCertificateRequest(c *gin.Context) {
 		common.ErrorResp(c, err, 400)
 		return
 	}
-	adminUser := c.MustGet(string(conf.UserKey)).(*model.User)
+	
+	// 修复：使用与CreateTenantCertificateRequest相同的方式获取用户上下文
+	_user := c.Request.Context().Value(conf.UserKey)
+	if _user == nil {
+		common.ErrorResp(c, errors.New("user not found in context"), http.StatusUnauthorized)
+		return
+	}
+	adminUser := _user.(*model.User)
+	
 	// 单一调用，封装了所有批准和创建的逻辑
 	cert, err := op.ApproveAndCreateCertificate(id, adminUser)
 	if err != nil {
@@ -196,7 +204,15 @@ func RejectCertificateRequest(c *gin.Context) {
 		common.ErrorResp(c, err, 400)
 		return
 	}
-	adminUser := c.MustGet(string(conf.UserKey)).(*model.User)
+	
+	// 修复：使用与CreateTenantCertificateRequest相同的方式获取用户上下文
+	_user := c.Request.Context().Value(conf.UserKey)
+	if _user == nil {
+		common.ErrorResp(c, errors.New("user not found in context"), http.StatusUnauthorized)
+		return
+	}
+	adminUser := _user.(*model.User)
+	
 	request, err := op.RejectCertificateRequest(id, adminUser, req.Reason)
 	if err != nil {
 		common.ErrorResp(c, err, 500)

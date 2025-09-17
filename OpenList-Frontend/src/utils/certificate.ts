@@ -10,8 +10,8 @@ export interface Certificate {
   owner: string
   owner_id?: number
   content?: string
-  expiration_date: string
-  issued_date: string
+  expiration_date: string | Date
+  issued_date: string | Date
   created_at: string
   updated_at: string
 }
@@ -48,6 +48,10 @@ export const getCertificateRequests = (page = 1, per_page = 10): Promise<PResp<C
 
 export const createCertificate = (data: Partial<Certificate>): Promise<PResp<Certificate>> => {
   return r.post("/admin/certificate/create", data)
+}
+
+export const createCertificateRequest = (data: Partial<CertificateRequest>): Promise<PResp<CertificateRequest>> => {
+  return r.post("/admin/certificate/request", data)
 }
 
 export const updateCertificate = (id: number, data: Partial<Certificate>): Promise<PResp<Certificate>> => {

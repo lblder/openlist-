@@ -65,6 +65,7 @@ import {
   rejectCertificateRequest,
   downloadCertificate,
   createCertificate,
+  createCertificateRequest,
   revokeCertificate,
   updateCertificate,
   deleteCertificate
@@ -83,8 +84,8 @@ interface Certificate {
   owner: string
   owner_id?: number
   content?: string
-  expiration_date: string
-  issued_date: string
+  expiration_date: string | Date
+  issued_date: string | Date
   created_at: string
   updated_at: string
 }
@@ -259,8 +260,26 @@ const CertificateManagement: Component = () => {
     setName(cert.name)
     setType(cert.type)
     setOwner(cert.owner)
-    setIssuedDate(cert.issued_date)
-    setExpirationDate(cert.expiration_date)
+    
+    // 将ISO日期字符串转换为Date对象用于显示
+    const issuedDateObj = new Date(cert.issued_date);
+    const expirationDateObj = new Date(cert.expiration_date);
+    
+    // 检查日期是否有效
+    if (!isNaN(issuedDateObj.getTime())) {
+      // 转换为 YYYY-MM-DD 格式用于input元素
+      setIssuedDate(issuedDateObj.toISOString().split('T')[0]);
+    } else {
+      setIssuedDate(cert.issued_date as string);
+    }
+    
+    if (!isNaN(expirationDateObj.getTime())) {
+      // 转换为 YYYY-MM-DD 格式用于input元素
+      setExpirationDate(expirationDateObj.toISOString().split('T')[0]);
+    } else {
+      setExpirationDate(cert.expiration_date as string);
+    }
+    
     setContent(cert.content || "")
     setFormErrors({})
     // 清除用户搜索状态
@@ -305,10 +324,20 @@ const CertificateManagement: Component = () => {
   const saveCertificate = async () => {
     if (!validateForm()) return
     
-    // 将日期字符串转换为完整的ISO时间格式
-    const issuedDateISO = issuedDate() ? new Date(issuedDate()).toISOString() : "";
-    const expirationDateISO = expirationDate() ? new Date(expirationDate()).toISOString() : "";
+    // 将日期转换为ISO格式
+    const issuedDateObj = new Date(issuedDate());
+    const expirationDateObj = new Date(expirationDate());
     
+    // 确保日期是有效的
+    if (isNaN(issuedDateObj.getTime()) || isNaN(expirationDateObj.getTime())) {
+      notify.error(t("certificate.invalid_date_format"));
+      return;
+    }
+    
+    // 将日期转换为ISO字符串格式
+    const issuedDateISO = issuedDateObj.toISOString();
+    const expirationDateISO = expirationDateObj.toISOString();
+
     const certData = {
       name: name(),
       type: type(),
@@ -318,7 +347,7 @@ const CertificateManagement: Component = () => {
       expiration_date: expirationDateISO,
       content: content()
     }
-    
+
     let result
     if (currentCertificate()) {
       // 更新证书
@@ -429,7 +458,7 @@ const CertificateManagement: Component = () => {
       reason: requestReason()
     }
     
-    const result = await createCertificate(requestData)
+    const result = await createCertificateRequest(requestData)
     handleResp(
       result as any,
       () => {
@@ -456,7 +485,7 @@ const CertificateManagement: Component = () => {
   const rejectRequest = async (id: number, reason?: string) => {
     const result = await rejectCertificateRequest(id, { 
       rejected_by: me().username, 
-      rejected_reason: reason 
+      reason: reason 
     })
     handleResp(
       result as any,
@@ -506,14 +535,19 @@ const CertificateManagement: Component = () => {
           </Text>
           
           <HStack spacing="$2" w="$full">
-            <Text fontSize="$sm">
-              {new Date(props.cert.issued_date).toLocaleDateString()}
+            <Text fontSize="$sm" color="$neutral11">
+              {t("certificate.issued_date")}:{" "}
+              {(() => {
+                const date = new Date(props.cert.issued_date);
+                return isNaN(date.getTime()) ? props.cert.issued_date : date.toLocaleDateString();
+              })()}
             </Text>
             <Text fontSize="$sm" color="$neutral11">
-              →
-            </Text>
-            <Text fontSize="$sm">
-              {new Date(props.cert.expiration_date).toLocaleDateString()}
+              {t("certificate.expiration_date")}:{" "}
+              {(() => {
+                const date = new Date(props.cert.expiration_date);
+                return isNaN(date.getTime()) ? props.cert.expiration_date : date.toLocaleDateString();
+              })()}
             </Text>
           </HStack>
           
@@ -586,8 +620,18 @@ const CertificateManagement: Component = () => {
             {t(`certificate.${props.cert.status}`)}
           </Badge>
         </Td>
-        <Td>{new Date(props.cert.issued_date).toLocaleDateString()}</Td>
-        <Td>{new Date(props.cert.expiration_date).toLocaleDateString()}</Td>
+        <Td>
+          {(() => {
+            const date = new Date(props.cert.issued_date);
+            return isNaN(date.getTime()) ? props.cert.issued_date : date.toLocaleDateString();
+          })()}
+        </Td>
+        <Td>
+          {(() => {
+            const date = new Date(props.cert.expiration_date);
+            return isNaN(date.getTime()) ? props.cert.expiration_date : date.toLocaleDateString();
+          })()}
+        </Td>
         <Td>
           <HStack spacing="$2">
             <IconButton
